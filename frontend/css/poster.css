@@ -1,0 +1,111 @@
+/* ─── Poster text overlay ─── */
+.p-text{
+  position:absolute;top:0;left:0;z-index:50;
+  cursor:grab;user-select:none;transform-origin:top left;
+  white-space:nowrap;display:inline-block;line-height:1.05;letter-spacing:.02em;
+}
+.p-text:active{cursor:grabbing}
+/* Double-click puts .p-text into inline-edit mode */
+.p-text[contenteditable="true"]{
+  cursor:text;
+  user-select:text;
+  outline:2px dashed rgba(255,255,255,.4);
+  outline-offset:4px;
+}
+
+/* ─── Stats card on poster ─── */
+/* Editorial style: transparent fill, crisp white border, zero radius */
+.p-stats{
+  position:absolute;top:0;left:0;z-index:50;
+  cursor:grab;user-select:none;transform-origin:top left;
+  display:flex;flex-direction:column;gap:0;
+  border:1.5px solid rgba(255,255,255,.65);border-radius:0;
+  padding:20px 24px;min-width:200px;
+  background:var(--sc-bg,transparent);
+}
+.p-stats:active{cursor:grabbing}
+
+.ps-row{display:flex;align-items:center;gap:14px;padding:10px 0}
+.ps-div{height:1px;background:rgba(255,255,255,.12)}
+
+/* .ps-icon sizing is defined further down alongside the SVG rule */
+.ps-data{display:flex;flex-direction:column;gap:2px}
+
+/* Label scales at 35% of value size, min 14px — via --sc-label-size set by JS */
+.ps-label{
+  font-family:var(--poster-font);
+  font-size:var(--sc-label-size,10px);
+  letter-spacing:.2em;text-transform:uppercase;
+  color:var(--sc-color,#fff);opacity:.45;
+  outline:none;cursor:text;
+  user-select:text;
+}
+.ps-label:focus{opacity:.75}
+
+/* Value */
+.ps-val{
+  font-family:var(--poster-font);
+  font-size:var(--sc-size,48px);
+  color:var(--sc-color,#fff);line-height:1;font-weight:400;letter-spacing:.02em;
+  outline:none;cursor:text;
+  user-select:text;
+}
+.ps-val:focus{border-bottom:1px solid rgba(255,255,255,.3)}
+
+/* ─── SVG icons inside stats card rows ─── */
+.ps-icon{
+  width:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  color:var(--sc-color,#fff);
+}
+.ps-icon svg{
+  width:max(14px, calc(var(--sc-size,48px) * 0.32));
+  height:auto;overflow:visible;
+}
+
+/* ─── Legend box ─── */
+.p-legend{
+  position:absolute;top:0;left:0;z-index:50;
+  cursor:grab;user-select:none;transform-origin:top left;
+  display:flex;flex-direction:column;gap:0;
+  border:1.5px solid rgba(255,255,255,.65);border-radius:0;
+  padding:14px 20px;
+  background:transparent;
+}
+.p-legend:active{cursor:grabbing}
+.pl-row{display:flex;align-items:center;gap:12px;padding:7px 0}
+.pl-div{height:1px;background:rgba(255,255,255,.12)}
+.pl-icon{width:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--pl-color,#fff)}
+.pl-label{
+  font-family:var(--poster-font);font-size:13px;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--pl-color,rgba(255,255,255,.85));white-space:nowrap;
+}
+
+/* ─── Location stamp ─── */
+.p-location{
+  position:absolute;top:0;left:0;z-index:50;
+  cursor:grab;user-select:none;transform-origin:top left;
+}
+.p-location:active{cursor:grabbing}
+.ploc-city{
+  font-family:var(--poster-font);font-size:16px;
+  letter-spacing:.22em;text-transform:uppercase;color:#fff;
+  line-height:1.2;
+}
+.ploc-coords{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  letter-spacing:.08em;color:rgba(255,255,255,.45);
+  margin-top:3px;
+}
+
+/* ─── Map image — draggable within poster frame ─── */
+#poster-map-img{
+  cursor:grab;
+  user-select:none;
+}
+#poster-map-img:active{cursor:grabbing}
+
+/* ─── Brand ─── */
+.p-brand{position:absolute;top:0;left:0;z-index:50;cursor:grab;user-select:none;transform-origin:top left}
+.p-brand:active{cursor:grabbing}
+.p-logo{object-fit:contain;width:var(--logo-size,120px);max-height:120px;display:block}

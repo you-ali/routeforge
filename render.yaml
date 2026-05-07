@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: routeforge-frontend
+    env: static
+    staticPublishPath: frontend/
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=3600
+
+  - type: web
+    name: routeforge-backend
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: FRONTEND_URL
+        value: https://routeforge-frontend.onrender.com

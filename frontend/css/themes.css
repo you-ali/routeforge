@@ -1,0 +1,23 @@
+:root {
+  --route-color: #007AFF;
+  --glow-color: rgba(0,122,255,0.2);
+  --poster-bg: #FFFFFF;
+  --poster-text: #000000;
+  --poster-muted: rgba(0,0,0,0.5);
+  --stat-card-bg: rgba(0,0,0,0.82);
+  --stat-card-border: rgba(255,255,255,0.1);
+  --poster-font: 'Bebas Neue', sans-serif;
+  /* Dynamic text vars */
+  --en-size: 32px;
+  --en-color: #ffffff;
+  --en-bg-computed: transparent;
+  --en-bg-padding: 0;
+  --cn-size: 28px;
+  --cn-color: #ffffff;
+  --cn-bg-computed: transparent;
+  --cn-bg-padding: 0;
+  --sc-size: 48px;
+  --sc-label-size: 17px;
+  --sc-bg: rgba(0,0,0,0.82);
+  --logo-size: 100px;
+}

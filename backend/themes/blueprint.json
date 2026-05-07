@@ -1,0 +1,17 @@
+{
+  "id": "blueprint",
+  "label": "Blueprint",
+  "tileUrl": "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+  "tileAttribution": "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>",
+  "routeColor": "#FFFFFF",
+  "glowColor": "rgba(255, 255, 255, 0.25)",
+  "arrowColor": "#FFFFFF",
+  "startMarkerColor": "#000000",
+  "endMarkerColor": "#FFFFFF",
+  "posterBg": "#1E3A8A",
+  "posterText": "#FFFFFF",
+  "posterMuted": "rgba(255,255,255,0.48)",
+  "statCardBg": "rgba(30,58,138,0.88)",
+  "statCardBorder": "rgba(255,255,255,0.20)",
+  "defaultFont": "Space Grotesk"
+}

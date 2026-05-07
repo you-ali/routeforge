@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RouteForge — Run Club Poster Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat&family=Oswald&family=DM+Sans&family=Space+Grotesk&family=Syne&family=Barlow+Condensed&family=IBM+Plex+Mono&family=Playfair+Display&family=Cormorant+Garamond&display=swap" crossorigin>
+  <link rel="stylesheet" href="./css/app.css">
+  <link rel="stylesheet" href="./css/themes.css">
+  <link rel="stylesheet" href="./css/poster.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <header class="topbar">
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 28 28" fill="none"><path d="M5 22L14 6L23 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 16L19 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      RouteForge
+    </div>
+    <div class="topbar-hint">Draw your route → customize → export your poster</div>
+    <button id="btn-export-mobile" class="mob-export-btn" style="display:none">↓ Export</button>
+  </header>
+
+  <div class="app-body">
+
+    <!-- ─── LEFT PANEL ─── -->
+    <aside class="left-panel">
+      <div class="sheet-handle"></div>
+      <nav class="panel-tabs">
+        <button class="panel-tab active" data-tab="route">Route</button>
+        <button class="panel-tab" data-tab="map">Map</button>
+        <button class="panel-tab" data-tab="text">Text</button>
+        <button class="panel-tab" data-tab="brand">Brand</button>
+      </nav>
+
+      <div class="panel-content">
+
+        <!-- ═══ ROUTE ═══ -->
+        <div class="tab-pane active" id="tab-route">
+
+          <div class="draw-hero" id="draw-hero">
+            <div class="draw-hero-top">
+              <div class="draw-hero-icon-wrap" id="draw-hero-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                </svg>
+              </div>
+              <div class="draw-hero-text">
+                <div class="draw-hero-title">Draw Your Route</div>
+                <div class="draw-hero-sub">Tap the map to place start, waypoints &amp; finish</div>
+              </div>
+            </div>
+            <button id="btn-toggle-draw" class="draw-toggle-btn">
+              <span class="draw-dot" id="draw-dot"></span>
+              <span id="draw-label">Start Drawing</span>
+            </button>
+          </div>
+
+          <div class="lcard">
+            <div class="lcard-title">Route Points</div>
+            <div id="route-nodes-list" class="nodes-list"></div>
+            <button id="btn-add-node" class="link-btn">+ Add stop</button>
+          </div>
+
+          <div class="lcard">
+            <div class="lcard-title">Start Marker</div>
+            <div class="icon-picker" id="start-icon-picker">
+              <div class="icn active" data-icon="pin" title="Pin">📍</div>
+              <div class="icn" data-icon="circle" title="Circle">⚪</div>
+              <div class="icn" data-icon="flag" title="Flag">🏁</div>
+              <div class="icn" data-icon="diamond" title="Diamond">🔷</div>
+            </div>
+            <div class="lcard-title" style="margin-top:8px">End Marker</div>
+            <div class="icon-picker" id="end-icon-picker">
+              <div class="icn" data-icon="pin" title="Pin">📍</div>
+              <div class="icn" data-icon="circle" title="Circle">⚪</div>
+              <div class="icn active" data-icon="flag" title="Flag">🏁</div>
+              <div class="icn" data-icon="diamond" title="Diamond">🔷</div>
+            </div>
+          </div>
+
+          <button id="btn-reset" class="danger-btn">↺ Clear All Points</button>
+          <div id="reset-confirm" class="confirm-card" style="display:none">
+            <p>Clear all route points?</p>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="confirm-yes" class="sm-btn danger">Clear</button>
+              <button id="confirm-no" class="sm-btn ghost">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ MAP ═══ -->
+        <div class="tab-pane" id="tab-map">
+
+          <div class="lcard">
+            <div class="lcard-title">Route Color</div>
+            <div class="theme-grid" id="route-color-grid"></div>
+          </div>
+
+          <div class="lcard">
+            <div class="lcard-title">Map Style</div>
+            <div class="theme-grid" id="map-style-grid"></div>
+          </div>
+
+          <div class="lcard">
+            <div class="lcard-title">Route Width</div>
+            <div class="srow"><span class="sl">Thin</span><input type="range" id="route-width-slider" min="1" max="14" value="7" step="0.5"><span class="sl">Bold</span></div>
+
+            <div class="lcard-title" style="margin-top:10px">Map Detail</div>
+            <div class="srow"><span class="sl">Low</span><input type="range" id="map-detail-slider" min="0" max="100" value="100"><span class="sl">High</span></div>
+
+            <div class="lcard-title" style="margin-top:10px">Map Angle</div>
+            <div class="srow"><span class="sl">0°</span><input type="range" id="map-angle-slider" min="0" max="60" value="0"><span class="sl">60°</span></div>
+            <div class="angle-row"><span class="range-val" id="angle-val">0°</span><button id="btn-reset-angle" class="sm-btn ghost">Reset</button></div>
+          </div>
+        </div>
+
+        <!-- ═══ TEXT ═══ -->
+        <div class="tab-pane" id="tab-text">
+
+          <div class="lcard">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <div class="lcard-title" style="margin:0">Text Boxes</div>
+              <button id="btn-add-text" class="link-btn" style="margin:0">+ Add</button>
+            </div>
+            <div id="text-elements-list"></div>
+          </div>
+
+          <!-- Stats Card controls -->
+          <div class="lcard" id="stats-card-ctrl">
+            <div class="lcard-title">Stats Card</div>
+
+            <div class="stat-ctrl-row">
+              <svg class="stat-icon-preview" viewBox="0 0 14 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1C4 1 1 3.5 1 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="7" cy="7" r="2"/></svg>
+              <input type="text" id="val-dist" class="stat-val-input" placeholder="Distance…">
+              <label class="toggle"><input type="checkbox" id="chk-dist" checked><span class="tog-track"></span></label>
+            </div>
+            <div class="stat-ctrl-row">
+              <svg class="stat-icon-preview" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="11" r="6"/><path d="M8 7.5v3.5l2.5 1.5"/><line x1="5.5" y1="1" x2="10.5" y2="1"/><line x1="8" y1="1" x2="8" y2="4.5"/></svg>
+              <input type="text" id="val-time" class="stat-val-input" placeholder="Est. time…">
+              <label class="toggle"><input type="checkbox" id="chk-time" checked><span class="tog-track"></span></label>
+            </div>
+            <div class="stat-ctrl-row">
+              <svg class="stat-icon-preview" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,9 5,2 9,7 13,1 17,5"/></svg>
+              <input type="text" id="val-surface" class="stat-val-input" placeholder="Surface…">
+              <label class="toggle"><input type="checkbox" id="chk-surface"><span class="tog-track"></span></label>
+            </div>
+
+            <div class="lcard-title" style="margin-top:10px">Value Size</div>
+            <div class="srow"><span class="sl">S</span><input type="range" id="stat-size" min="20" max="120" value="50"><span class="sl">XL</span><span class="range-val" id="stat-size-val">50</span></div>
+
+            <div class="lcard-title" style="margin-top:10px">Font Color</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="stat-font-color" value="#ffffff" class="color-swatch">
+              <span style="font-size:11px;color:var(--t2)">Text &amp; icon color</span>
+            </div>
+
+            <div class="lcard-title" style="margin-top:10px">Background</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="stat-bg-color" value="#000000" class="color-swatch">
+              <label class="toggle"><input type="checkbox" id="stat-remove-bg" checked><span class="tog-track"></span></label>
+              <span style="font-size:11px;color:var(--t2)">Remove bg</span>
+            </div>
+          </div>
+
+          <!-- Legend Box controls -->
+          <div class="lcard" id="legend-card-ctrl">
+            <div class="lcard-title">Legend Box</div>
+
+            <div class="stat-ctrl-row">
+              <svg class="stat-icon-preview" viewBox="0 0 26 32" fill="none"><line x1="3" y1="1" x2="3" y2="31" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="3" y="1" width="22" height="16" fill="currentColor"/><rect x="3" y="1" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="14" y="1" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="8.5" y="5" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="19.5" y="5" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="3" y="9" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="14" y="9" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="8.5" y="13" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="19.5" y="13" width="5.5" height="4" fill="rgba(0,0,0,.75)"/></svg>
+              <input type="text" id="val-legend-start" class="stat-val-input" placeholder="Start / Finish label…" value="START / FINISH">
+              <label class="toggle"><input type="checkbox" id="chk-legend-start" checked><span class="tog-track"></span></label>
+            </div>
+            <div class="stat-ctrl-row">
+              <svg class="stat-icon-preview" viewBox="0 0 20 26" fill="none"><path d="M10 1C10 1,1 11,1 16A9 9 0 0 0 19 16C19 11,10 1,10 1Z" fill="currentColor"/><circle cx="10" cy="16" r="3.5" fill="rgba(0,0,0,.4)"/></svg>
+              <input type="text" id="val-legend-wp" class="stat-val-input" placeholder="Waypoint label…" value="WAYPOINT">
+              <label class="toggle"><input type="checkbox" id="chk-legend-wp"><span class="tog-track"></span></label>
+            </div>
+
+            <div class="lcard-title" style="margin-top:10px">Label Size</div>
+            <div class="srow"><span class="sl">S</span><input type="range" id="legend-size" min="10" max="60" value="13"><span class="sl">XL</span><span class="range-val" id="legend-size-val">13</span></div>
+
+            <div class="lcard-title" style="margin-top:10px">Font Color</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="legend-font-color" value="#ffffff" class="color-swatch">
+              <span style="font-size:11px;color:var(--t2)">Label &amp; icon color</span>
+            </div>
+
+            <div class="lcard-title" style="margin-top:10px">Visibility</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <label class="toggle"><input type="checkbox" id="chk-legend" checked><span class="tog-track"></span></label>
+              <span style="font-size:11px;color:var(--t2)">Show on poster</span>
+            </div>
+
+            <div class="lcard-title" style="margin-top:10px">Background</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="legend-bg-color" value="#000000" class="color-swatch">
+              <label class="toggle"><input type="checkbox" id="legend-remove-bg" checked><span class="tog-track"></span></label>
+              <span style="font-size:11px;color:var(--t2)">Remove bg</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ BRAND ═══ -->
+        <div class="tab-pane" id="tab-brand">
+          <div class="lcard">
+            <div class="lcard-title">Club Logo</div>
+            <div class="upload-zone" id="upload-zone">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Drop image or <label for="logo-upload" class="link-btn" style="display:inline;margin:0;padding:0;">choose file</label></span>
+              <input type="file" id="logo-upload" accept="image/*" style="display:none">
+            </div>
+            <img id="logo-preview" style="display:none;width:100%;max-height:80px;object-fit:contain;border:1px solid var(--border);border-radius:8px;margin-top:8px">
+            <button id="btn-remove-logo" class="danger-btn" style="display:none;margin-top:6px">Remove Logo</button>
+
+            <div class="lcard-title" style="margin-top:12px">Logo Size</div>
+            <div class="srow"><span class="sl">S</span><input type="range" id="logo-size" min="60" max="300" value="120"><span class="sl">XL</span></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── MAP ─── -->
+    <div class="map-center" id="map-center">
+      <div id="map"></div>
+      <div class="draw-banner" id="draw-banner" style="display:none">
+        <span id="draw-banner-text">Click map to place Start</span>
+        <button id="btn-stop-draw" class="banner-btn">Done</button>
+      </div>
+      <div class="map-loading" id="map-loading" style="display:none"><div class="spinner"></div></div>
+      <div class="map-ctrls">
+        <button class="mc" id="btn-zi" title="Zoom in">+</button>
+        <div class="mc-div"></div>
+        <button class="mc" id="btn-zo" title="Zoom out">−</button>
+        <div class="mc-div"></div>
+        <button class="mc mc-sm" id="btn-fit" title="Fit route">⛶</button>
+      </div>
+      <div id="toasts" class="toasts"></div>
+    </div>
+
+    <!-- RESIZER (desktop only) -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Backdrop dims the map when Controls sheet is open (mobile only) -->
+    <div class="mob-backdrop" id="mob-backdrop"></div>
+
+    <!-- ─── MOBILE BOTTOM NAV (hidden on desktop) ─── -->
+    <nav class="mobile-nav" id="mobile-nav">
+      <button class="mnav-btn active" id="mnav-map" data-view="map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+        <span>Map</span>
+      </button>
+      <button class="mnav-btn" id="mnav-controls" data-view="controls">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        <span>Controls</span>
+      </button>
+      <button class="mnav-btn" id="mnav-preview" data-view="preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>Preview</span>
+      </button>
+    </nav>
+
+    <!-- ─── POSTER PREVIEW ─── -->
+    <aside class="right-panel" id="right-panel">
+      <div class="rp-head">
+        <span class="rp-title">Poster Preview</span>
+        <div class="sz-pick">
+          <button class="sz active" data-size="portrait">4:5</button>
+          <button class="sz" data-size="square">1:1</button>
+          <button class="sz" data-size="landscape">─</button>
+        </div>
+      </div>
+
+      <div class="poster-viewport" id="poster-viewport">
+
+        <!-- Poster map controls — independent of the main Leaflet map -->
+        <div class="poster-map-ctrls">
+          <button class="pmc" id="btn-pmap-zi" title="Zoom into map">+</button>
+          <div class="pmc-div"></div>
+          <button class="pmc" id="btn-pmap-zo" title="Zoom out of map">−</button>
+          <div class="pmc-div"></div>
+          <button class="pmc pmc-sm" id="btn-pmap-refresh" title="Refresh map snapshot from current view">⟳</button>
+        </div>
+
+        <div class="poster-frame size-portrait" id="poster-frame">
+          <div class="poster-map-layer">
+            <img id="poster-map-img" src="" alt="" style="display:none;position:absolute;top:0;left:0;transform-origin:top left;">
+            <div class="poster-empty" id="poster-empty">
+              <span>Place points on the map<br>to preview your poster</span>
+            </div>
+          </div>
+          <div id="poster-els" class="poster-els">
+            <!-- Stats -->
+            <div class="p-stats" id="p-stats" data-x="60" data-y="700" style="transform:translate(60px,700px)">
+              <div class="ps-row" id="ps-dist">
+                <div class="ps-icon" id="ps-icon-dist"><svg viewBox="0 0 14 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1C4 1 1 3.5 1 7c0 4.5 6 10 6 10s6-5.5 6-10c0-3.5-3-6-6-6z"/><circle cx="7" cy="7" r="2"/></svg></div>
+                <div class="ps-data">
+                  <div class="ps-label" contenteditable="true" spellcheck="false">DISTANCE</div>
+                  <div class="ps-val" id="ps-val-dist" contenteditable="true" spellcheck="false">—</div>
+                </div>
+              </div>
+              <div class="ps-div" id="ps-div-dt"></div>
+              <div class="ps-row" id="ps-time">
+                <div class="ps-icon" id="ps-icon-time"><svg viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="11" r="6"/><path d="M8 7.5v3.5l2.5 1.5"/><line x1="5.5" y1="1" x2="10.5" y2="1"/><line x1="8" y1="1" x2="8" y2="4.5"/></svg></div>
+                <div class="ps-data">
+                  <div class="ps-label" contenteditable="true" spellcheck="false">EST. TIME</div>
+                  <div class="ps-val" id="ps-val-time" contenteditable="true" spellcheck="false">—</div>
+                </div>
+              </div>
+              <div class="ps-div" id="ps-div-ts"></div>
+              <div class="ps-row" id="ps-surf">
+                <div class="ps-icon" id="ps-icon-surf"><svg viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,9 5,2 9,7 13,1 17,5"/></svg></div>
+                <div class="ps-data">
+                  <div class="ps-label" contenteditable="true" spellcheck="false">SURFACE</div>
+                  <div class="ps-val" id="ps-val-surf" contenteditable="true" spellcheck="false">PAVED</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Legend box -->
+            <div class="p-legend" id="p-legend" data-x="800" data-y="1220" style="transform:translate(800px,1220px)">
+              <div class="pl-row">
+                <div class="pl-icon"><svg viewBox="0 0 26 32" width="16" height="20" fill="none"><line x1="3" y1="1" x2="3" y2="31" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="3" y="1" width="22" height="16" fill="currentColor"/><rect x="3" y="1" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="14" y="1" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="8.5" y="5" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="19.5" y="5" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="3" y="9" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="14" y="9" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="8.5" y="13" width="5.5" height="4" fill="rgba(0,0,0,.75)"/><rect x="19.5" y="13" width="5.5" height="4" fill="rgba(0,0,0,.75)"/></svg></div>
+                <div class="pl-label">START / FINISH</div>
+              </div>
+              <div class="pl-div"></div>
+              <div class="pl-row">
+                <div class="pl-icon"><svg viewBox="0 0 20 26" width="12" height="16" fill="none"><path d="M10 1C10 1,1 11,1 16A9 9 0 0 0 19 16C19 11,10 1,10 1Z" fill="currentColor"/><circle cx="10" cy="16" r="3.5" fill="rgba(0,0,0,.4)"/></svg></div>
+                <div class="pl-label">WAYPOINT</div>
+              </div>
+            </div>
+
+            <!-- Logo -->
+            <div class="p-brand" id="p-brand" data-x="60" data-y="1190" style="transform:translate(60px,1190px)">
+              <img class="p-logo" id="p-logo" style="display:none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rp-foot">
+        <button id="btn-export" class="export-btn">↓ Export PNG</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Hidden off-screen Leaflet map used exclusively for poster capture.
+     Must be in the DOM with real dimensions for Leaflet + dom-to-image to work. -->
+<div id="capture-map" style="position:fixed;left:-9999px;top:0;width:750px;height:750px;z-index:-1;pointer-events:none;"></div>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.2.0/dist/dom-to-image-more.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.27/interact.min.js"></script>
+<script src="./js/api.js"></script>
+<script src="./js/themes.js"></script>
+<script src="./js/map.js"></script>
+<script src="./js/builder.js"></script>
+<script src="./js/poster.js"></script>
+<script src="./js/export.js"></script>
+</body>
+</html>

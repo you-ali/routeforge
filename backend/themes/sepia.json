@@ -1,0 +1,17 @@
+{
+  "id": "sepia",
+  "label": "Sepia",
+  "tileUrl": "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+  "tileAttribution": "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>",
+  "routeColor": "#C45C26",
+  "glowColor": "rgba(196, 92, 38, 0.18)",
+  "arrowColor": "#C45C26",
+  "startMarkerColor": "#000000",
+  "endMarkerColor": "#C45C26",
+  "posterBg": "#F4ECD8",
+  "posterText": "#3D2B1F",
+  "posterMuted": "rgba(61,43,31,0.48)",
+  "statCardBg": "rgba(244,236,216,0.88)",
+  "statCardBorder": "rgba(61,43,31,0.15)",
+  "defaultFont": "Playfair Display"
+}
