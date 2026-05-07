@@ -334,13 +334,28 @@ async function compositeMapCanvas() {
     } catch (_) {}
   }
 
-  // Start / end / waypoint markers (divIcon SVG — inline, no external resources)
+  // Start / end / waypoint + arrow markers
+  // Use XMLSerializer so the SVG gets the required xmlns declaration — raw innerHTML lacks it
+  // and browsers reject namespace-less blobs as images.
   for (const mk of mainMapEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon')) {
-    const inner = mk.innerHTML.trim();
-    if (!inner) continue;
+    const svgEl = mk.querySelector('svg');
+    if (!svgEl) continue;
     try {
       const { x, y, w, h } = toNat(mk.getBoundingClientRect());
-      const burl = URL.createObjectURL(new Blob([inner], { type: 'image/svg+xml;charset=utf-8' }));
+      if (w <= 0 || h <= 0) continue;
+      // Serialise with xmlns so it loads as a valid SVG image document
+      let svgStr = new XMLSerializer().serializeToString(svgEl);
+      // Ensure transform-origin is expressed as SVG cx/cy so iOS renders rotation correctly
+      svgStr = svgStr.replace(
+        /style="([^"]*?)transform:\s*rotate\(([^)]+)\)[^"]*"/g,
+        (_, before, angle) => {
+          const vb = svgEl.viewBox.baseVal;
+          const cx = vb ? vb.width / 2 : 0;
+          const cy = vb ? vb.height / 2 : 0;
+          return `transform="rotate(${parseFloat(angle)},${cx},${cy})"`;
+        }
+      );
+      const burl = URL.createObjectURL(new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' }));
       await drawImageFromBlobUrl(ctx, burl, x, y, w, h);
     } catch (_) {}
   }
@@ -371,7 +386,8 @@ async function updatePosterPreview(opts = {}) {
     console.warn('preview err', e);
   }
 }
-window.updatePosterPreview = updatePosterPreview;
+window.updatePosterPreview  = updatePosterPreview;
+window.compositeMapCanvas  = compositeMapCanvas;
 
 // ── Text Elements ─────────────────────────────────────────────────────────────
 

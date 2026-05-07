@@ -13,14 +13,26 @@ async function doExport() {
   const frame = document.getElementById('poster-frame');
   const img   = document.getElementById('poster-map-img');
 
-  // Guard: the preview is captured automatically after the route is drawn.
-  // If it hasn't been captured yet (no src or zero-size), bail early.
+  showToast('Capturing…');
+
+  // Always re-composite from the current visible map so the exported position
+  // matches exactly what the user sees (compositeMapCanvas reads the live #map,
+  // so there is no hidden-map sync / position-shift problem).
+  if (window.compositeMapCanvas) {
+    try {
+      const freshUrl = await window.compositeMapCanvas();
+      if (freshUrl && img) {
+        img.src = freshUrl;
+        await (img.decode?.().catch(() => {}) ?? new Promise(r => { img.onload = r; }));
+      }
+    } catch (_) {}
+  }
+
+  // If still no valid image after re-composite, bail.
   if (!img || !img.getAttribute('src') || img.naturalWidth === 0) {
     showToast('Map preview not ready — please wait a moment');
     return;
   }
-
-  showToast('Capturing…');
 
   // Determine export dimensions from the active size class
   const dims    = { portrait: { w: 1080, h: 1350 }, square: { w: 1080, h: 1080 }, landscape: { w: 1080, h: 566 } };
