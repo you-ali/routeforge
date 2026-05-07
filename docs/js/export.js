@@ -10,15 +10,17 @@ const INLINE_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight',
 async function doExport() {
   if (!window.currentRouteData) { showToast('Draw a route first'); return; }
 
-  showToast('Capturing…');
-
-  // Always re-capture the hidden map to match the current visible map view.
-  // This ensures WYSIWYG: what the user sees on screen is what gets exported.
-  await window.updatePosterPreview?.({});
-  await new Promise(r => setTimeout(r, 300));
-
   const frame = document.getElementById('poster-frame');
   const img   = document.getElementById('poster-map-img');
+
+  // Guard: the preview is captured automatically after the route is drawn.
+  // If it hasn't been captured yet (no src or zero-size), bail early.
+  if (!img || !img.getAttribute('src') || img.naturalWidth === 0) {
+    showToast('Map preview not ready — please wait a moment');
+    return;
+  }
+
+  showToast('Capturing…');
 
   // Determine export dimensions from the active size class
   const dims    = { portrait: { w: 1080, h: 1350 }, square: { w: 1080, h: 1080 }, landscape: { w: 1080, h: 566 } };

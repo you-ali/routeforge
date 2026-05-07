@@ -256,6 +256,81 @@ function applyMapOffset(img) {
 }
 window.applyMapOffset = applyMapOffset;
 
+async function compositeMapCanvas(captureEl, cm) {
+  const W = captureEl.offsetWidth  || 1080;
+  const H = captureEl.offsetHeight || 1350;
+  const SCALE = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * SCALE;
+  canvas.height = H * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background fill
+  const bg = getComputedStyle(document.documentElement)
+    .getPropertyValue('--poster-bg').trim() || '#111111';
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // captureEl is positioned off-screen (left:-9999px)
+  const mapRect = captureEl.getBoundingClientRect();
+
+  // Draw tile <img> elements — loaded with crossOrigin='anonymous', safe on iOS
+  const tiles = captureEl.querySelectorAll('img.leaflet-tile');
+  for (const tile of tiles) {
+    if (!tile.complete || !tile.naturalWidth) continue;
+    const r = tile.getBoundingClientRect();
+    const x = r.left - mapRect.left;
+    const y = r.top  - mapRect.top;
+    try { ctx.drawImage(tile, x, y, r.width, r.height); } catch (_) {}
+  }
+
+  // Draw route SVG overlay
+  const svgEl = captureEl.querySelector('.leaflet-overlay-pane svg');
+  if (svgEl) {
+    try {
+      const bbox = svgEl.getBoundingClientRect();
+      const svgX = bbox.left - mapRect.left;
+      const svgY = bbox.top  - mapRect.top;
+      const serialized = new XMLSerializer().serializeToString(svgEl);
+      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
+      const burl = URL.createObjectURL(blob);
+      await new Promise((res) => {
+        const si = new Image();
+        si.onload = () => {
+          ctx.drawImage(si, svgX, svgY, bbox.width, bbox.height);
+          URL.revokeObjectURL(burl);
+          res();
+        };
+        si.onerror = () => { URL.revokeObjectURL(burl); res(); };
+        si.src = burl;
+      });
+    } catch (_) {}
+  }
+
+  // Draw divIcon markers (start / end / waypoints)
+  const markerEls = captureEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon');
+  for (const mk of markerEls) {
+    const r = mk.getBoundingClientRect();
+    const mx = r.left - mapRect.left;
+    const my = r.top  - mapRect.top;
+    const inner = mk.innerHTML.trim();
+    if (!inner) continue;
+    try {
+      const blob = new Blob([inner], { type: 'image/svg+xml;charset=utf-8' });
+      const burl = URL.createObjectURL(blob);
+      await new Promise(res => {
+        const mi = new Image();
+        mi.onload = () => { ctx.drawImage(mi, mx, my, r.width, r.height); URL.revokeObjectURL(burl); res(); };
+        mi.onerror = () => { URL.revokeObjectURL(burl); res(); };
+        mi.src = burl;
+      });
+    } catch (_) {}
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
 async function updatePosterPreview(opts = {}) {
   const cm = window._captureMap;
   const vm = window._leafletMap;
@@ -276,7 +351,7 @@ async function updatePosterPreview(opts = {}) {
     await waitForCaptureTiles(6000);
     await new Promise(r => setTimeout(r, 80));
 
-    const url = await domtoimage.toPng(captureEl, { scale: 2 });
+    const url = await compositeMapCanvas(captureEl, cm);
 
     const img = document.getElementById('poster-map-img');
     img.src = url;

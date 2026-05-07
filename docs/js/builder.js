@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
 
   // Format / aspect-ratio picker — rescale all overlay positions before switching
+  const CAPTURE_H_MAP = { portrait: 937, square: 750, landscape: 422 };
   document.querySelectorAll('#sz-pick .sz').forEach(b => b.addEventListener('click', () => {
     const newSize = b.dataset.size;
     if (newSize !== _currentSize) {
@@ -91,6 +92,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('#sz-pick .sz').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     document.getElementById('poster-frame').className = 'size-' + newSize;
+    // Resize the hidden capture map to match the new aspect ratio before
+    // triggering a new preview so the captured image has the right proportions.
+    const captureMapEl = document.getElementById('capture-map');
+    if (captureMapEl) {
+      captureMapEl.style.height = (CAPTURE_H_MAP[newSize] || 937) + 'px';
+      window._captureMap?.invalidateSize({ animate: false });
+    }
     requestAnimationFrame(() => window.scalePoster?.());
   }));
 
