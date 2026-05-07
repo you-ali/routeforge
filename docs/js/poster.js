@@ -278,8 +278,8 @@ function drawImageFromBlobUrl(ctx, burl, x, y, w, h) {
 }
 
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
-// Fetches tiles as CORS blobs (same-origin blob URLs) so the canvas is never tainted
-// on iOS Safari, allowing canvas.toDataURL() to succeed on all platforms.
+// Draws tiles directly from <img> elements (CORS-clean), routes via latLngToContainerPoint
+// (bypasses SVG serialisation), and markers via XMLSerializer on the inner <svg> only.
 async function compositeMapCanvas() {
   const mainMapEl = document.getElementById('map');
   const frameEl   = document.getElementById('poster-frame');
@@ -288,7 +288,7 @@ async function compositeMapCanvas() {
   const frameRect = frameEl.getBoundingClientRect();
   const frameW    = frameEl.offsetWidth;
   const frameH    = frameEl.offsetHeight;
-  const sc        = frameRect.width / frameW;  // CSS scale factor
+  const sc        = frameRect.width / frameW;   // CSS scale of the poster frame
 
   const SCALE = 2;
   const canvas = document.createElement('canvas');
@@ -303,7 +303,9 @@ async function compositeMapCanvas() {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, frameW, frameH);
 
-  // Screen rect → poster natural coordinates
+  // ── Screen rect → poster natural coordinates ────────────────────────
+  // frameRect is the CSS-scaled visual rect of the 1080-px natural frame.
+  // Dividing by sc converts viewport pixels → natural 1080-px canvas pixels.
   const toNat = r => ({
     x: (r.left - frameRect.left) / sc,
     y: (r.top  - frameRect.top)  / sc,
@@ -311,9 +313,8 @@ async function compositeMapCanvas() {
     h: r.height / sc,
   });
 
-  // Fetch all visible tiles in parallel as blob URLs, then draw them
-  // Wait for any still-loading tiles to finish (up to 3 s) so the first export
-  // isn't blank because Leaflet hadn't finished fetching all tiles yet.
+  // ── Tiles ────────────────────────────────────────────────────────────
+  // Wait for any in-flight tiles to settle (up to 3 s each).
   const allTiles = [...mainMapEl.querySelectorAll('img.leaflet-tile')].filter(t => t.src);
   await Promise.all(allTiles.filter(t => !t.complete).map(t => new Promise(res => {
     t.addEventListener('load',  res, { once: true });
@@ -322,65 +323,90 @@ async function compositeMapCanvas() {
   })));
   const tileEls = allTiles.filter(t => t.complete && t.naturalWidth);
 
-  const tilePairs = await Promise.all(tileEls.map(async t => ({
-    nat: toNat(t.getBoundingClientRect()),
-    burl: await loadAsBlobUrl(t.src),
-  })));
-  for (const { nat, burl } of tilePairs) {
-    await drawImageFromBlobUrl(ctx, burl, nat.x, nat.y, nat.w, nat.h);
+  // Primary path: draw tile <img> elements directly.
+  // Leaflet sets crossOrigin='anonymous' so tiles are CORS-clean — no taint.
+  // This avoids a cold network fetch on every export (img cache ≠ fetch cache).
+  let canvasMayBeTainted = false;
+  for (const t of tileEls) {
+    const { x, y, w, h } = toNat(t.getBoundingClientRect());
+    try { ctx.drawImage(t, x, y, w, h); }
+    catch (_) { canvasMayBeTainted = true; break; }
   }
 
-  // Route SVG overlay (inline SVG — no external resources, blob URL is safe)
-  const svgEl = mainMapEl.querySelector('.leaflet-overlay-pane svg');
-  if (svgEl) {
-    try {
-      const { x, y, w, h } = toNat(svgEl.getBoundingClientRect());
-      // Clone so we can rewrite CSS transforms → SVG transform attributes without
-      // touching the live DOM. Standalone SVG image documents do not reliably apply
-      // CSS `transform` on inner elements (especially on iOS Safari), so we convert
-      // them to presentation attributes which are universally supported.
-      const svgClone = svgEl.cloneNode(true);
-      svgClone.querySelectorAll('[style]').forEach(el => {
-        const st = el.style;
-        const raw = st.transform || '';
-        if (!raw) return;
-        // Parse translate / translate3d / matrix values from the CSS transform string
-        let tx = 0, ty = 0;
-        const t3 = raw.match(/translate3d\(\s*([-\d.]+)px?,\s*([-\d.]+)px?/);
-        const t2 = !t3 && raw.match(/translate\(\s*([-\d.]+)px?,\s*([-\d.]+)px?/);
-        const mx = !t3 && !t2 && raw.match(/matrix\(\s*[\d.,\s-]+,\s*([-\d.]+),\s*([-\d.]+)\s*\)/);
-        if (t3)      { tx = parseFloat(t3[1]); ty = parseFloat(t3[2]); }
-        else if (t2) { tx = parseFloat(t2[1]); ty = parseFloat(t2[2]); }
-        else if (mx) { tx = parseFloat(mx[1]); ty = parseFloat(mx[2]); }
-        if (tx !== 0 || ty !== 0) {
-          const existing = el.getAttribute('transform') || '';
-          el.setAttribute('transform', `translate(${tx},${ty})${existing ? ' ' + existing : ''}`);
-        }
-        st.transform = '';
-      });
-      const serialized = new XMLSerializer().serializeToString(svgClone);
-      const burl = URL.createObjectURL(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }));
-      await drawImageFromBlobUrl(ctx, burl, x, y, w, h);
-    } catch (_) {}
+  // Taint check: if direct-draw threw or we suspect taint, test toDataURL.
+  if (canvasMayBeTainted) {
+    try { canvas.toDataURL('image/png', 0.01); canvasMayBeTainted = false; }
+    catch (_) { /* confirmed tainted — redo via blob URLs below */ }
   }
 
-  // Start / end / waypoint + arrow markers
-  // Use XMLSerializer so the SVG gets the required xmlns declaration — raw innerHTML lacks it
-  // and browsers reject namespace-less blobs as images.
+  if (canvasMayBeTainted) {
+    // iOS Safari fallback: fetch each tile as a same-origin blob URL.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(SCALE, SCALE);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, frameW, frameH);
+    for (const t of tileEls) {
+      const nat  = toNat(t.getBoundingClientRect());
+      const burl = await loadAsBlobUrl(t.src);
+      await drawImageFromBlobUrl(ctx, burl, nat.x, nat.y, nat.w, nat.h);
+    }
+  }
+
+  // ── Route polyline — drawn from lat/lng via latLngToContainerPoint ───
+  // This completely bypasses SVG serialisation. Leaflet's latLngToContainerPoint
+  // returns pixels relative to the map container's top-left, which coincides
+  // with the frame's top-left in the app layout (both at appLeft, appTop).
+  // So natural canvas position = (containerPt.x / sc, containerPt.y / sc).
+  const routeData = window.currentRouteData;
+  const lMap      = window._leafletMap;
+  if (routeData?.geojson?.coordinates && lMap) {
+    const coords = routeData.geojson.coordinates;   // [[lng, lat], …]
+    const rc = window.getRouteColor?.() || '#ffffff';
+    const gc = window.getGlowColor?.()  || 'rgba(255,255,255,0.15)';
+    const rw = window.getRouteWidth?.() || 7;
+
+    const pts = coords.map(([lng, lat]) => {
+      const cp = lMap.latLngToContainerPoint([lat, lng]);
+      return { x: cp.x / sc, y: cp.y / sc };
+    });
+
+    if (pts.length >= 2) {
+      const stroke = (color, lineWidth, alpha) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = lineWidth / sc;
+        ctx.globalAlpha = alpha;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.restore();
+      };
+      stroke(gc, rw * 4, 0.15);   // glow
+      stroke(rc, rw,     1.0);    // main line
+    }
+  }
+
+  // ── Markers (start / end / waypoint + arrow divIcons) ───────────────
+  // Marker divs are precisely positioned by Leaflet; their getBoundingClientRect
+  // gives the correct screen position. We serialise only the inner <svg> so
+  // XMLSerializer adds the required xmlns declaration.
   for (const mk of mainMapEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon')) {
     const svgEl = mk.querySelector('svg');
     if (!svgEl) continue;
     try {
       const { x, y, w, h } = toNat(mk.getBoundingClientRect());
       if (w <= 0 || h <= 0) continue;
-      // Serialise with xmlns so it loads as a valid SVG image document
       let svgStr = new XMLSerializer().serializeToString(svgEl);
-      // Ensure transform-origin is expressed as SVG cx/cy so iOS renders rotation correctly
+      // Convert CSS transform:rotate → SVG transform attribute for iOS compat
       svgStr = svgStr.replace(
         /style="([^"]*?)transform:\s*rotate\(([^)]+)\)[^"]*"/g,
-        (_, before, angle) => {
+        (_, _before, angle) => {
           const vb = svgEl.viewBox.baseVal;
-          const cx = vb ? vb.width / 2 : 0;
+          const cx = vb ? vb.width  / 2 : 0;
           const cy = vb ? vb.height / 2 : 0;
           return `transform="rotate(${parseFloat(angle)},${cx},${cy})"`;
         }

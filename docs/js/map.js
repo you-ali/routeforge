@@ -187,6 +187,7 @@ function drawRoute(geojson) {
   }
 }
 window.drawRoute = drawRoute;
+window.getRouteWidth = () => routeWidth;
 
 function placeEditMarkers(nodes, ss, es, onDrag) {
   editMarkerGroup.clearLayers();
