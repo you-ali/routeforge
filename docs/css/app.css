@@ -593,8 +593,16 @@ input[type="range"]::-webkit-slider-thumb{
    ════════════════════════════════════════════════════════════════════ */
 @media(max-width:599px){
 
-  /* ── 1. Map controls — top-right; FAB already bottom-left ────────── */
-  .map-ctrls{ right:12px; top:12px; }
+  /* ── 1. Map controls — horizontal row, top-right ────────────────── */
+  .map-ctrls{
+    right:12px;
+    top:12px;
+    flex-direction:row;  /* rotate layout 90° — buttons in a row */
+  }
+  .mc-div{ width:1px; height:auto; margin:5px 0; } /* dividers become vertical */
+
+  /* FAB — push further down from frame bottom */
+  .fab{ bottom:80px; }
 
   /* ── 2. Topbar: mobile layout ───────────────────────────────────── */
   /* Order: logo | undo/redo | [format grows] | export                 */

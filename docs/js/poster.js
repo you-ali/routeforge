@@ -256,19 +256,39 @@ function applyMapOffset(img) {
 }
 window.applyMapOffset = applyMapOffset;
 
+// Load an image URL as a same-origin blob URL so canvas.drawImage never taints the canvas.
+// On iOS Safari, drawing <img> elements directly taints the canvas even when crossOrigin is set.
+async function loadAsBlobUrl(src) {
+  try {
+    const resp = await fetch(src, { mode: 'cors', cache: 'force-cache' });
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return URL.createObjectURL(blob);
+  } catch (_) { return null; }
+}
+
+function drawImageFromBlobUrl(ctx, burl, x, y, w, h) {
+  return new Promise(res => {
+    if (!burl) return res();
+    const img = new Image();
+    img.onload = () => { try { ctx.drawImage(img, x, y, w, h); } catch(_){} URL.revokeObjectURL(burl); res(); };
+    img.onerror = () => { URL.revokeObjectURL(burl); res(); };
+    img.src = burl;
+  });
+}
+
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
-// Uses #map (always on-screen) so getBoundingClientRect() is reliable on all platforms
-// including iOS Safari, where off-screen elements return zero-sized rects.
+// Fetches tiles as CORS blobs (same-origin blob URLs) so the canvas is never tainted
+// on iOS Safari, allowing canvas.toDataURL() to succeed on all platforms.
 async function compositeMapCanvas() {
   const mainMapEl = document.getElementById('map');
   const frameEl   = document.getElementById('poster-frame');
   if (!mainMapEl || !frameEl) return '';
 
   const frameRect = frameEl.getBoundingClientRect();
-  const frameW    = frameEl.offsetWidth;   // natural unscaled width  (e.g. 1080)
-  const frameH    = frameEl.offsetHeight;  // natural unscaled height (e.g. 1350)
-  // CSS scale factor applied to the frame
-  const sc = frameRect.width / frameW;
+  const frameW    = frameEl.offsetWidth;
+  const frameH    = frameEl.offsetHeight;
+  const sc        = frameRect.width / frameW;  // CSS scale factor
 
   const SCALE = 2;
   const canvas = document.createElement('canvas');
@@ -283,58 +303,54 @@ async function compositeMapCanvas() {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, frameW, frameH);
 
-  // Helper: screen rect → poster natural coordinates
-  function toNatural(r) {
-    return {
-      x: (r.left - frameRect.left) / sc,
-      y: (r.top  - frameRect.top)  / sc,
-      w: r.width  / sc,
-      h: r.height / sc,
-    };
+  // Screen rect → poster natural coordinates
+  const toNat = r => ({
+    x: (r.left - frameRect.left) / sc,
+    y: (r.top  - frameRect.top)  / sc,
+    w: r.width  / sc,
+    h: r.height / sc,
+  });
+
+  // Fetch all visible tiles in parallel as blob URLs, then draw them
+  const tileEls = [...mainMapEl.querySelectorAll('img.leaflet-tile')]
+    .filter(t => t.complete && t.naturalWidth && t.src);
+
+  const tilePairs = await Promise.all(tileEls.map(async t => ({
+    nat: toNat(t.getBoundingClientRect()),
+    burl: await loadAsBlobUrl(t.src),
+  })));
+  for (const { nat, burl } of tilePairs) {
+    await drawImageFromBlobUrl(ctx, burl, nat.x, nat.y, nat.w, nat.h);
   }
 
-  // Draw map tiles (loaded with crossOrigin='anonymous' — safe on iOS canvas)
-  const tiles = mainMapEl.querySelectorAll('img.leaflet-tile');
-  for (const tile of tiles) {
-    if (!tile.complete || !tile.naturalWidth) continue;
-    const { x, y, w, h } = toNatural(tile.getBoundingClientRect());
-    try { ctx.drawImage(tile, x, y, w, h); } catch (_) {}
-  }
-
-  // Draw route SVG overlay
+  // Route SVG overlay (inline SVG — no external resources, blob URL is safe)
   const svgEl = mainMapEl.querySelector('.leaflet-overlay-pane svg');
   if (svgEl) {
     try {
-      const { x, y, w, h } = toNatural(svgEl.getBoundingClientRect());
+      const { x, y, w, h } = toNat(svgEl.getBoundingClientRect());
       const serialized = new XMLSerializer().serializeToString(svgEl);
       const burl = URL.createObjectURL(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }));
-      await new Promise(res => {
-        const si = new Image();
-        si.onload = () => { try { ctx.drawImage(si, x, y, w, h); } catch(_){} URL.revokeObjectURL(burl); res(); };
-        si.onerror = () => { URL.revokeObjectURL(burl); res(); };
-        si.src = burl;
-      });
+      await drawImageFromBlobUrl(ctx, burl, x, y, w, h);
     } catch (_) {}
   }
 
-  // Draw start / end / waypoint markers (divIcon SVG elements)
-  const markerEls = mainMapEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon');
-  for (const mk of markerEls) {
+  // Start / end / waypoint markers (divIcon SVG — inline, no external resources)
+  for (const mk of mainMapEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon')) {
     const inner = mk.innerHTML.trim();
     if (!inner) continue;
-    const { x, y, w, h } = toNatural(mk.getBoundingClientRect());
     try {
+      const { x, y, w, h } = toNat(mk.getBoundingClientRect());
       const burl = URL.createObjectURL(new Blob([inner], { type: 'image/svg+xml;charset=utf-8' }));
-      await new Promise(res => {
-        const mi = new Image();
-        mi.onload = () => { try { ctx.drawImage(mi, x, y, w, h); } catch(_){} URL.revokeObjectURL(burl); res(); };
-        mi.onerror = () => { URL.revokeObjectURL(burl); res(); };
-        mi.src = burl;
-      });
+      await drawImageFromBlobUrl(ctx, burl, x, y, w, h);
     } catch (_) {}
   }
 
-  return canvas.toDataURL('image/png');
+  try {
+    return canvas.toDataURL('image/png');
+  } catch (e) {
+    console.warn('compositeMapCanvas: toDataURL failed', e);
+    return '';
+  }
 }
 
 async function updatePosterPreview(opts = {}) {
