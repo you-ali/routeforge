@@ -601,8 +601,8 @@ input[type="range"]::-webkit-slider-thumb{
   }
   .mc-div{ width:1px; height:auto; margin:5px 0; } /* dividers become vertical */
 
-  /* FAB — push further down from frame bottom */
-  .fab{ bottom:80px; }
+  /* FAB — sit near the bottom edge of the screen */
+  .fab{ bottom:24px; }
 
   /* ── 2. Topbar: mobile layout ───────────────────────────────────── */
   /* Order: logo | undo/redo | [format grows] | export                 */
@@ -611,8 +611,30 @@ input[type="range"]::-webkit-slider-thumb{
   .logo-text{ display:none }
   .logo{ gap:0; order:1 }
 
-  .topbar-history{ order:2; gap:2px }
-  .tb-hist-btn{ padding:6px 8px; font-size:0; gap:0; min-width:34px; min-height:34px }
+  /* Undo/redo: float over top-left of map instead of living in the topbar */
+  .topbar-history{
+    position:fixed;
+    top:calc(var(--topbar-h) + 12px);
+    left:12px;
+    z-index:200;
+    display:flex;
+    gap:6px;
+    order:2;
+  }
+  .tb-hist-btn{
+    background:rgba(30,30,30,0.82);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    width:36px;
+    height:36px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    font-size:0;
+  }
   .tb-hist-btn svg{ flex-shrink:0 }
 
   .topbar-center{ order:3; flex:1; min-width:0 }
