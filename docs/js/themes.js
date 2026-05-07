@@ -13,13 +13,12 @@ const ROUTE_COLORS = [
 // All tile URLs use CartoDB (Carto) — free, no API key, no rate limit.
 // Subdomains a–d are declared on the tile layer (see map.js switchTileUrl).
 const MAP_STYLES = [
-  { id:'dark',      label:'Dark',        tileUrl:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',         mapBg:'#0a0a0a' },
-  { id:'dark-nl',   label:'Dark (no labels)', tileUrl:'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', mapBg:'#0a0a0a' },
-  { id:'light',     label:'Light',       tileUrl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',        mapBg:'#f0f0f0' },
-  { id:'light-nl',  label:'Light (no labels)', tileUrl:'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', mapBg:'#f0f0f0' },
-  { id:'voyager',   label:'Voyager',     tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', mapBg:'#e8e4dc' },
-  { id:'positron',  label:'Positron',    tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', mapBg:'#f5f5f0' },
-  { id:'osm',       label:'OSM',         tileUrl:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                    mapBg:'#f5f5f5' },
+  { id:'dark',    label:'Dark',    tileUrl:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                        mapBg:'#0a0a0a' },
+  { id:'light',   label:'Light',   tileUrl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                       mapBg:'#f0f0f0' },
+  { id:'warm',    label:'Warm',    tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',              mapBg:'#e8e4dc' },
+  { id:'minimal', label:'Minimal', tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',    mapBg:'#f5f5f0' },
+  { id:'sandy',   label:'Sandy',   tileUrl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                       mapBg:'#c8b08a', filterClass:'map-sandy' },
+  { id:'osm',     label:'OSM',     tileUrl:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                                   mapBg:'#f5f5f5' },
 ];
 
 let currentRoutePreset = ROUTE_COLORS[0];
@@ -79,12 +78,19 @@ function applyRouteColor(rc) {
 
 function applyMapStyle(ms) {
   currentMapStyle = ms;
-  // Change map tiles
   switchTileUrl(ms.tileUrl);
-  // Change poster bg
+  // Update the CSS variable — vignette strips and #app bg use this automatically
   document.documentElement.style.setProperty('--poster-bg', ms.mapBg);
-  document.getElementById('poster-frame').style.background = ms.mapBg;
-  document.getElementById('map-center').style.background = ms.mapBg;
+  document.getElementById('app').style.background = ms.mapBg;
+  // Handle CSS filter classes (e.g. map-sandy)
+  const mapEl = document.getElementById('map');
+  if (mapEl) {
+    mapEl.dataset.filterClass && mapEl.classList.remove(mapEl.dataset.filterClass);
+    mapEl.dataset.filterClass = ms.filterClass || '';
+    if (ms.filterClass) mapEl.classList.add(ms.filterClass);
+  }
+  // NOTE: poster-frame intentionally stays transparent so the live Leaflet
+  // map shows through it. Do NOT set poster-frame.style.background here.
   setTimeout(() => { if (window.updatePosterPreview) window.updatePosterPreview(); }, 600);
 }
 

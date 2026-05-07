@@ -2,7 +2,7 @@ services:
   - type: web
     name: running-poster-generator
     env: static
-    staticPublishPath: frontend/
+    staticPublishPath: docs/
     headers:
       - path: /*
         name: Cache-Control

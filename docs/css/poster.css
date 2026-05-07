@@ -3,6 +3,7 @@
   position:absolute;top:0;left:0;z-index:50;
   cursor:grab;user-select:none;transform-origin:top left;
   white-space:nowrap;display:inline-block;line-height:1.05;letter-spacing:.02em;
+  touch-action:none;
 }
 .p-text:active{cursor:grabbing}
 /* Double-click puts .p-text into inline-edit mode */
@@ -14,12 +15,12 @@
 }
 
 /* ─── Stats card on poster ─── */
-/* Editorial style: transparent fill, crisp white border, zero radius */
 .p-stats{
   position:absolute;top:0;left:0;z-index:50;
   cursor:grab;user-select:none;transform-origin:top left;
+  touch-action:none;
   display:flex;flex-direction:column;gap:0;
-  border:1.5px solid rgba(255,255,255,.65);border-radius:0;
+  border:none;border-radius:0;
   padding:20px 24px;min-width:200px;
   background:var(--sc-bg,transparent);
 }
@@ -58,7 +59,7 @@
   color:var(--sc-color,#fff);
 }
 .ps-icon svg{
-  width:max(14px, calc(var(--sc-size,48px) * 0.32));
+  width:max(18px, calc(var(--sc-size,48px) * 0.48));
   height:auto;overflow:visible;
 }
 
@@ -66,8 +67,9 @@
 .p-legend{
   position:absolute;top:0;left:0;z-index:50;
   cursor:grab;user-select:none;transform-origin:top left;
+  touch-action:none;
   display:flex;flex-direction:column;gap:0;
-  border:1.5px solid rgba(255,255,255,.65);border-radius:0;
+  border:none;border-radius:0;
   padding:14px 20px;
   background:transparent;
 }
@@ -106,6 +108,7 @@
 #poster-map-img:active{cursor:grabbing}
 
 /* ─── Brand ─── */
-.p-brand{position:absolute;top:0;left:0;z-index:50;cursor:grab;user-select:none;transform-origin:top left}
+.p-brand{position:absolute;top:0;left:0;z-index:50;cursor:grab;user-select:none;transform-origin:top left;touch-action:none}
 .p-brand:active{cursor:grabbing}
-.p-logo{object-fit:contain;width:var(--logo-size,120px);max-height:120px;display:block}
+.p-brand img{pointer-events:none}
+.p-logo{display:block;width:var(--logo-size,120px);height:auto;max-height:none}
