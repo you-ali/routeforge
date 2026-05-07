@@ -614,10 +614,8 @@ function initDrag() {
     // Stats card: editable children handle their own clicks
     if (el.id === 'p-stats' && e.target.closest('.ps-label,.ps-val,.ps-icon')) return;
 
-    // Only arm a potential drag if already selected (or p-brand which is always free)
-    const canDrag = (el === _selectedEl) || (el.id === 'p-brand');
-    if (!canDrag) return;
-
+    // Arm drag for ALL elements on first touch — a quick tap (no movement)
+    // still selects and shows the edit bar via the pointerup handler.
     // Store candidate — but do NOT preventDefault and do NOT capture yet
     _drag = {
       el,

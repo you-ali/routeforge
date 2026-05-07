@@ -20,8 +20,10 @@
   --sidebar-w:280px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
+html,body{height:100%;overflow:hidden;touch-action:none}
 body{font-family:-apple-system,'SF Pro Text','Inter','Helvetica Neue',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+/* Allow the Leaflet map and scrollable drawer to pan normally */
+#map,#capture-map,.drawer-content,.drawer-tabs{touch-action:pan-x pan-y}
 button{font-family:inherit;cursor:pointer;border:none}
 input,select{font-family:inherit}
 
@@ -29,23 +31,24 @@ input,select{font-family:inherit}
 #topbar{
   position:fixed;top:0;left:0;right:0;
   height:var(--topbar-h);z-index:600;
-  /* Three-column grid: logo | centre | right */
-  display:grid;
-  grid-template-columns:1fr auto 1fr;
-  align-items:center;
-  padding:0 12px;gap:8px;
+  /* Flex row: logo · undo/redo · [center grows] · export */
+  display:flex;align-items:center;
+  padding:0 10px;gap:6px;
   background:rgba(255,255,255,.92);
   border-bottom:1px solid var(--border);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
 }
-.logo{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:800;letter-spacing:-.04em;color:var(--t1);justify-self:start}
+.logo{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:800;letter-spacing:-.04em;color:var(--t1);flex-shrink:0}
 .logo-icon{width:20px;height:20px}
 
-/* Centre column */
-.topbar-center{display:flex;justify-content:center;align-items:center}
+/* Centre grows to fill remaining space */
+.topbar-center{display:flex;justify-content:center;align-items:center;flex:1;min-width:0}
 
-/* Right column */
-.topbar-right{display:flex;align-items:center;gap:8px;justify-self:end}
+/* Undo/redo — pushed to right on desktop via margin-left:auto on export */
+.topbar-history{display:flex;gap:3px;align-items:center;flex-shrink:0}
+
+/* Export always on far right */
+#btn-export{margin-left:auto;flex-shrink:0}
 
 /* ── Format / aspect-ratio picker ────────────────────────────────────── */
 .sz-pick{
@@ -112,6 +115,7 @@ input,select{font-family:inherit}
   bottom:var(--drawer-peek-h);
   background:var(--poster-bg);
   overflow:hidden;
+  touch-action:none;
 }
 
 /* ─── Leaflet map ─────────────────────────────────────────────────────
@@ -589,31 +593,23 @@ input[type="range"]::-webkit-slider-thumb{
    ════════════════════════════════════════════════════════════════════ */
 @media(max-width:599px){
 
-  /* ── 2. Topbar: prevent wrapping / overflow ─────────────────────── */
-  #topbar{
-    padding:0 8px;
-    gap:4px;
-  }
+  /* ── 2. Topbar: mobile layout ───────────────────────────────────── */
+  /* Order: logo | undo/redo | [format grows] | export                 */
+  #topbar{ padding:0 8px; gap:4px; }
 
-  /* Hide logo text; keep SVG icon */
-  .logo-text{display:none}
-  .logo{gap:0}
+  .logo-text{ display:none }
+  .logo{ gap:0; order:1 }
 
-  /* Shrink format-picker; hide "Format" label */
-  .sz-pick{padding:3px 4px 3px 6px;gap:2px}
-  .sz-label{display:none}
-  .sz{padding:5px 7px;font-size:10px;gap:3px}
+  .topbar-history{ order:2; gap:2px }
+  .tb-hist-btn{ padding:6px 8px; font-size:0; gap:0; min-width:34px; min-height:34px }
+  .tb-hist-btn svg{ flex-shrink:0 }
 
-  /* Undo/Redo: icon-only (hide text via font-size:0, SVG keeps its attrs) */
-  .tb-hist-btn{padding:6px 8px;font-size:0;gap:0;min-width:34px;min-height:34px}
-  .tb-hist-btn svg{flex-shrink:0}
+  .topbar-center{ order:3; flex:1; min-width:0 }
+  .sz-pick{ padding:3px 4px 3px 6px; gap:2px }
+  .sz-label{ display:none }
+  .sz{ padding:5px 7px; font-size:10px; gap:3px }
 
-  /* Shrink export button slightly so it fits */
-  .topbar-export-btn{padding:7px 10px;font-size:12px;gap:4px}
-
-  /* Prevent right group from overflowing */
-  .topbar-right{gap:4px;min-width:0;overflow:hidden}
-  .topbar-history{gap:2px}
+  #btn-export{ order:4; margin-left:0; padding:7px 10px; font-size:12px; gap:4px }
 
   /* ── 4. Edit bar: constrain width & allow horizontal scroll ─────── */
   #edit-bar{

@@ -46,23 +46,23 @@
     </div>
   </div>
 
-  <!-- Right: undo / redo + export -->
-  <div class="topbar-right">
-    <div class="topbar-history">
-      <button id="btn-undo" class="tb-hist-btn" title="Undo (⌘Z)" disabled>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13A9 9 0 1 1 5.7 6.3"/></svg>
-        Undo
-      </button>
-      <button id="btn-redo" class="tb-hist-btn" title="Redo (⌘⇧Z)" disabled>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13A9 9 0 1 0 18.3 6.3"/></svg>
-        Redo
-      </button>
-    </div>
-    <button id="btn-export" class="topbar-export-btn">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Export
+  <!-- Undo / Redo (direct child so CSS order can reposition on mobile) -->
+  <div class="topbar-history">
+    <button id="btn-undo" class="tb-hist-btn" title="Undo (⌘Z)" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13A9 9 0 1 1 5.7 6.3"/></svg>
+      Undo
+    </button>
+    <button id="btn-redo" class="tb-hist-btn" title="Redo (⌘⇧Z)" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13A9 9 0 1 0 18.3 6.3"/></svg>
+      Redo
     </button>
   </div>
+
+  <!-- Export -->
+  <button id="btn-export" class="topbar-export-btn">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export
+  </button>
 
 </header>
 
