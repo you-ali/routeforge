@@ -312,8 +312,15 @@ async function compositeMapCanvas() {
   });
 
   // Fetch all visible tiles in parallel as blob URLs, then draw them
-  const tileEls = [...mainMapEl.querySelectorAll('img.leaflet-tile')]
-    .filter(t => t.complete && t.naturalWidth && t.src);
+  // Wait for any still-loading tiles to finish (up to 3 s) so the first export
+  // isn't blank because Leaflet hadn't finished fetching all tiles yet.
+  const allTiles = [...mainMapEl.querySelectorAll('img.leaflet-tile')].filter(t => t.src);
+  await Promise.all(allTiles.filter(t => !t.complete).map(t => new Promise(res => {
+    t.addEventListener('load',  res, { once: true });
+    t.addEventListener('error', res, { once: true });
+    setTimeout(res, 3000);
+  })));
+  const tileEls = allTiles.filter(t => t.complete && t.naturalWidth);
 
   const tilePairs = await Promise.all(tileEls.map(async t => ({
     nat: toNat(t.getBoundingClientRect()),
@@ -328,7 +335,30 @@ async function compositeMapCanvas() {
   if (svgEl) {
     try {
       const { x, y, w, h } = toNat(svgEl.getBoundingClientRect());
-      const serialized = new XMLSerializer().serializeToString(svgEl);
+      // Clone so we can rewrite CSS transforms → SVG transform attributes without
+      // touching the live DOM. Standalone SVG image documents do not reliably apply
+      // CSS `transform` on inner elements (especially on iOS Safari), so we convert
+      // them to presentation attributes which are universally supported.
+      const svgClone = svgEl.cloneNode(true);
+      svgClone.querySelectorAll('[style]').forEach(el => {
+        const st = el.style;
+        const raw = st.transform || '';
+        if (!raw) return;
+        // Parse translate / translate3d / matrix values from the CSS transform string
+        let tx = 0, ty = 0;
+        const t3 = raw.match(/translate3d\(\s*([-\d.]+)px?,\s*([-\d.]+)px?/);
+        const t2 = !t3 && raw.match(/translate\(\s*([-\d.]+)px?,\s*([-\d.]+)px?/);
+        const mx = !t3 && !t2 && raw.match(/matrix\(\s*[\d.,\s-]+,\s*([-\d.]+),\s*([-\d.]+)\s*\)/);
+        if (t3)      { tx = parseFloat(t3[1]); ty = parseFloat(t3[2]); }
+        else if (t2) { tx = parseFloat(t2[1]); ty = parseFloat(t2[2]); }
+        else if (mx) { tx = parseFloat(mx[1]); ty = parseFloat(mx[2]); }
+        if (tx !== 0 || ty !== 0) {
+          const existing = el.getAttribute('transform') || '';
+          el.setAttribute('transform', `translate(${tx},${ty})${existing ? ' ' + existing : ''}`);
+        }
+        st.transform = '';
+      });
+      const serialized = new XMLSerializer().serializeToString(svgClone);
       const burl = URL.createObjectURL(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }));
       await drawImageFromBlobUrl(ctx, burl, x, y, w, h);
     } catch (_) {}
