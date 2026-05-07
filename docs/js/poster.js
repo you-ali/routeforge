@@ -256,72 +256,78 @@ function applyMapOffset(img) {
 }
 window.applyMapOffset = applyMapOffset;
 
-async function compositeMapCanvas(captureEl, cm) {
-  const W = captureEl.offsetWidth  || 1080;
-  const H = captureEl.offsetHeight || 1350;
+// Composite the visible Leaflet map into a canvas at the poster's natural resolution.
+// Uses #map (always on-screen) so getBoundingClientRect() is reliable on all platforms
+// including iOS Safari, where off-screen elements return zero-sized rects.
+async function compositeMapCanvas() {
+  const mainMapEl = document.getElementById('map');
+  const frameEl   = document.getElementById('poster-frame');
+  if (!mainMapEl || !frameEl) return '';
+
+  const frameRect = frameEl.getBoundingClientRect();
+  const frameW    = frameEl.offsetWidth;   // natural unscaled width  (e.g. 1080)
+  const frameH    = frameEl.offsetHeight;  // natural unscaled height (e.g. 1350)
+  // CSS scale factor applied to the frame
+  const sc = frameRect.width / frameW;
+
   const SCALE = 2;
   const canvas = document.createElement('canvas');
-  canvas.width  = W * SCALE;
-  canvas.height = H * SCALE;
+  canvas.width  = frameW * SCALE;
+  canvas.height = frameH * SCALE;
   const ctx = canvas.getContext('2d');
   ctx.scale(SCALE, SCALE);
 
-  // Background fill
+  // Background colour
   const bg = getComputedStyle(document.documentElement)
     .getPropertyValue('--poster-bg').trim() || '#111111';
   ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, frameW, frameH);
 
-  // captureEl is positioned off-screen (left:-9999px)
-  const mapRect = captureEl.getBoundingClientRect();
+  // Helper: screen rect → poster natural coordinates
+  function toNatural(r) {
+    return {
+      x: (r.left - frameRect.left) / sc,
+      y: (r.top  - frameRect.top)  / sc,
+      w: r.width  / sc,
+      h: r.height / sc,
+    };
+  }
 
-  // Draw tile <img> elements — loaded with crossOrigin='anonymous', safe on iOS
-  const tiles = captureEl.querySelectorAll('img.leaflet-tile');
+  // Draw map tiles (loaded with crossOrigin='anonymous' — safe on iOS canvas)
+  const tiles = mainMapEl.querySelectorAll('img.leaflet-tile');
   for (const tile of tiles) {
     if (!tile.complete || !tile.naturalWidth) continue;
-    const r = tile.getBoundingClientRect();
-    const x = r.left - mapRect.left;
-    const y = r.top  - mapRect.top;
-    try { ctx.drawImage(tile, x, y, r.width, r.height); } catch (_) {}
+    const { x, y, w, h } = toNatural(tile.getBoundingClientRect());
+    try { ctx.drawImage(tile, x, y, w, h); } catch (_) {}
   }
 
   // Draw route SVG overlay
-  const svgEl = captureEl.querySelector('.leaflet-overlay-pane svg');
+  const svgEl = mainMapEl.querySelector('.leaflet-overlay-pane svg');
   if (svgEl) {
     try {
-      const bbox = svgEl.getBoundingClientRect();
-      const svgX = bbox.left - mapRect.left;
-      const svgY = bbox.top  - mapRect.top;
+      const { x, y, w, h } = toNatural(svgEl.getBoundingClientRect());
       const serialized = new XMLSerializer().serializeToString(svgEl);
-      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
-      const burl = URL.createObjectURL(blob);
-      await new Promise((res) => {
+      const burl = URL.createObjectURL(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }));
+      await new Promise(res => {
         const si = new Image();
-        si.onload = () => {
-          ctx.drawImage(si, svgX, svgY, bbox.width, bbox.height);
-          URL.revokeObjectURL(burl);
-          res();
-        };
+        si.onload = () => { try { ctx.drawImage(si, x, y, w, h); } catch(_){} URL.revokeObjectURL(burl); res(); };
         si.onerror = () => { URL.revokeObjectURL(burl); res(); };
         si.src = burl;
       });
     } catch (_) {}
   }
 
-  // Draw divIcon markers (start / end / waypoints)
-  const markerEls = captureEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon');
+  // Draw start / end / waypoint markers (divIcon SVG elements)
+  const markerEls = mainMapEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon');
   for (const mk of markerEls) {
-    const r = mk.getBoundingClientRect();
-    const mx = r.left - mapRect.left;
-    const my = r.top  - mapRect.top;
     const inner = mk.innerHTML.trim();
     if (!inner) continue;
+    const { x, y, w, h } = toNatural(mk.getBoundingClientRect());
     try {
-      const blob = new Blob([inner], { type: 'image/svg+xml;charset=utf-8' });
-      const burl = URL.createObjectURL(blob);
+      const burl = URL.createObjectURL(new Blob([inner], { type: 'image/svg+xml;charset=utf-8' }));
       await new Promise(res => {
         const mi = new Image();
-        mi.onload = () => { ctx.drawImage(mi, mx, my, r.width, r.height); URL.revokeObjectURL(burl); res(); };
+        mi.onload = () => { try { ctx.drawImage(mi, x, y, w, h); } catch(_){} URL.revokeObjectURL(burl); res(); };
         mi.onerror = () => { URL.revokeObjectURL(burl); res(); };
         mi.src = burl;
       });
@@ -332,26 +338,12 @@ async function compositeMapCanvas(captureEl, cm) {
 }
 
 async function updatePosterPreview(opts = {}) {
-  const cm = window._captureMap;
-  const vm = window._leafletMap;
-
-  if (opts.resetPan && cm && window.currentRouteData) {
-    const coords = window.currentRouteData.geojson.coordinates.map(c => [c[1], c[0]]);
-    window._captureTilesReady = false;
-    cm.fitBounds(L.latLngBounds(coords), { padding: [60, 60], animate: false });
-  } else if (cm && vm) {
-    cm.setView(vm.getCenter(), vm.getZoom(), { animate: false });
-    window._captureTilesReady = false;
-  }
-
-  const captureEl = document.getElementById('capture-map');
-  if (!captureEl) return;
+  // We now composite from the visible #map — no capture map sync needed.
+  // Small delay lets any in-progress tile loads settle before we snapshot.
+  await new Promise(r => setTimeout(r, 120));
 
   try {
-    await waitForCaptureTiles(6000);
-    await new Promise(r => setTimeout(r, 80));
-
-    const url = await compositeMapCanvas(captureEl, cm);
+    const url = await compositeMapCanvas();
 
     const img = document.getElementById('poster-map-img');
     img.src = url;
