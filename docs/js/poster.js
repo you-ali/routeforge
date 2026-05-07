@@ -740,8 +740,10 @@ function initDrag() {
     if (!el) return;
     // Already in text-edit mode — let the browser handle it completely
     if (el.contentEditable === 'true' || e.target.contentEditable === 'true') return;
-    // Stats card: editable children handle their own clicks
-    if (el.id === 'p-stats' && e.target.closest('.ps-label,.ps-val,.ps-icon')) return;
+    // Note: stats card children (.ps-label/.ps-val/.ps-icon) are intentionally
+    // NOT excluded here. The 6px dead-zone in pointermove means a simple tap on
+    // those children still fires normally; only a real drag (≥6px movement) moves
+    // the card — consistent with how the legend card behaves.
 
     // Arm drag for ALL elements on first touch — a quick tap (no movement)
     // still selects and shows the edit bar via the pointerup handler.
