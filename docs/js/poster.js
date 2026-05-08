@@ -277,6 +277,28 @@ function drawImageFromBlobUrl(ctx, burl, x, y, w, h) {
   });
 }
 
+/**
+ * First export on slow phones often runs before Leaflet inserts any `img.leaflet-tile`
+ * nodes. Waiting on Promise.all([]) for zero tiles finishes immediately → blank map.
+ * Poll until at least one tile exists, decode, and has pixels (or timeout).
+ */
+async function waitForLeafletTilesReady(mapEl) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    const all = [...mapEl.querySelectorAll('img.leaflet-tile')].filter(t => t.src);
+    if (all.length > 0) {
+      await Promise.all(all.filter(t => !t.complete).map(t => new Promise(res => {
+        t.addEventListener('load', res, { once: true });
+        t.addEventListener('error', res, { once: true });
+        setTimeout(res, 6000);
+      })));
+      const ok = all.filter(t => t.complete && t.naturalWidth > 0);
+      if (ok.length >= 1) return;
+    }
+    await new Promise(r => setTimeout(r, 80));
+  }
+}
+
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
 // Draw at logical poster size (frameW×frameH), then scale the bitmap up for hi-res output.
 // Mixing ctx.scale() with stroked paths + drawImage() skews line thickness vs icon size
@@ -315,14 +337,20 @@ async function compositeMapCanvas() {
   });
 
   // ── Tiles ────────────────────────────────────────────────────────────
-  // Wait for any in-flight tiles to settle (up to 3 s each).
+  const lMapPre = window._leafletMap;
+  if (lMapPre) {
+    try { lMapPre.invalidateSize(false); } catch (_) {}
+  }
+  await waitForLeafletTilesReady(mainMapEl);
+
   const allTiles = [...mainMapEl.querySelectorAll('img.leaflet-tile')].filter(t => t.src);
   await Promise.all(allTiles.filter(t => !t.complete).map(t => new Promise(res => {
     t.addEventListener('load',  res, { once: true });
     t.addEventListener('error', res, { once: true });
-    setTimeout(res, 3000);
+    setTimeout(res, 5000);
   })));
   const tileEls = allTiles.filter(t => t.complete && t.naturalWidth);
+  window._lastCompositeTileCount = tileEls.length;
 
   // Primary path: draw tile <img> elements directly.
   // Leaflet sets crossOrigin='anonymous' so tiles are CORS-clean — no taint.

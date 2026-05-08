@@ -20,7 +20,12 @@ async function doExport() {
   // so there is no hidden-map sync / position-shift problem).
   if (window.compositeMapCanvas) {
     try {
-      const freshUrl = await window.compositeMapCanvas();
+      let freshUrl = await window.compositeMapCanvas();
+      // Cold mobile network: first attempt can still catch zero tiles; retry once after a beat.
+      if (window._lastCompositeTileCount === 0) {
+        await new Promise(r => setTimeout(r, 450));
+        freshUrl = await window.compositeMapCanvas();
+      }
       if (freshUrl && img) {
         img.src = freshUrl;
         await (img.decode?.().catch(() => {}) ?? new Promise(r => { img.onload = r; }));
