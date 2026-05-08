@@ -5,6 +5,13 @@
   white-space:nowrap;display:inline-block;line-height:1.05;letter-spacing:.02em;
   touch-action:none;
 }
+@media (max-width:599px){
+  /* Larger effective tap target on phones (tiny fonts are hard to hit before drag kicks in) */
+  .p-text{
+    padding:12px 10px;
+    margin:-12px -10px;
+  }
+}
 .p-text:active{cursor:grabbing}
 /* Double-click puts .p-text into inline-edit mode */
 .p-text[contenteditable="true"]{
@@ -38,20 +45,20 @@
   font-size:var(--sc-label-size,10px);
   letter-spacing:.2em;text-transform:uppercase;
   color:var(--sc-color,#fff);opacity:.45;
-  outline:none;cursor:text;
-  user-select:text;
+  cursor:inherit;
+  pointer-events:none;
+  user-select:none;
 }
-.ps-label:focus{opacity:.75}
 
 /* Value */
 .ps-val{
   font-family:var(--poster-font);
   font-size:var(--sc-size,48px);
   color:var(--sc-color,#fff);line-height:1;font-weight:400;letter-spacing:.02em;
-  outline:none;cursor:text;
-  user-select:text;
+  cursor:inherit;
+  pointer-events:none;
+  user-select:none;
 }
-.ps-val:focus{border-bottom:1px solid rgba(255,255,255,.3)}
 
 /* ─── SVG icons inside stats card rows ─── */
 .ps-icon{

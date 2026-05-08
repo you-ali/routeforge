@@ -20,6 +20,10 @@
   --sidebar-w:280px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
 html,body{height:100%;overflow:hidden;touch-action:none}
 body{font-family:-apple-system,'SF Pro Text','Inter','Helvetica Neue',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 /* Allow the Leaflet map and scrollable drawer to pan normally */
@@ -408,6 +412,41 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
 }
 .lcard-sub{font-size:12px;color:var(--t3);line-height:1.5}
 
+/* Text tab — per text box (sidebar matches poster; easier on phone than tiny on-frame taps) */
+.tel-block{
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:10px 10px 8px;
+  display:flex;flex-direction:column;gap:8px;
+  margin-bottom:10px;
+  background:var(--panel);
+}
+.tel-block-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.tel-block-title{
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);
+}
+.tel-block-head .tel-del{
+  flex-shrink:0;width:36px;height:36px;border:none;border-radius:10px;
+  background:rgba(0,0,0,.06);color:var(--t2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.tel-block-head .tel-del:active{opacity:.65}
+.tel-block-text{
+  width:100%;box-sizing:border-box;
+  display:block;
+  min-height:36px;height:36px;
+  padding:6px 10px;
+  font-size:15px;line-height:1.2;
+  border:1px solid var(--border);border-radius:8px;
+  background:#fff;color:#111;
+  font-family:inherit;
+}
+.tel-block .lcard-title{margin-top:6px;margin-bottom:2px}
+.tel-block .srow{width:100%}
+
 /* ─── Draw Hero CTA ──────────────────────────────────────────────── */
 .draw-hero{
   background:linear-gradient(140deg,#0A0A0A 0%,#3A3A3A 100%);
@@ -544,14 +583,6 @@ input[type="range"]::-webkit-slider-thumb{
 .stat-ctrl-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
 .stat-ctrl-row:last-of-type{border-bottom:none}
 .stat-icon-preview{width:20px;height:20px;flex-shrink:0;color:var(--t2);overflow:visible}
-.stat-val-input{
-  flex:1;background:var(--bg);border:1px solid var(--border2);
-  border-radius:8px;font-size:13px;font-weight:600;color:var(--t1);
-  padding:6px 9px;outline:none;min-width:0;
-  transition:border-color .15s, background .15s;
-}
-.stat-val-input:focus{border-color:var(--t1);background:var(--card)}
-.stat-val-input::placeholder{color:var(--t3);font-weight:400}
 .color-swatch{width:38px;height:30px;border:1.5px solid var(--border2);border-radius:8px;cursor:pointer;padding:2px;background:0;flex-shrink:0}
 
 /* ─── Text element row (simplified) ──────────────────────────────── */
@@ -678,6 +709,31 @@ input[type="range"]::-webkit-slider-thumb{
   .drawer-content input[type="text"],
   .drawer-content select{
     min-height:36px;
+  }
+
+  /* ── 6c. iOS Safari: zooms focused fields if computed font-size < 16px ── */
+  .tel-block-text,
+  .drawer-content textarea,
+  .drawer-content input[type="text"],
+  .drawer-content input[type="search"],
+  .drawer-content select{
+    font-size:16px !important;
+  }
+
+  /* Double-tap zoom on interactive UI (viewport max-scale is not always enough) */
+  #topbar button,
+  .drawer-handle,
+  .dtab,
+  .fab,
+  .mc,
+  .link-btn,
+  .eb-btn,
+  .tel-del,
+  .tb-hist-btn,
+  .toggle,
+  #btn-export,
+  .draw-toggle-btn{
+    touch-action:manipulation;
   }
 
   /* Node delete button: 36px tap target */

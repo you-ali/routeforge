@@ -1,5 +1,32 @@
 const FONTS = ['Bebas Neue','Barlow Condensed','Montserrat','Oswald','DM Sans','Space Grotesk','Syne','IBM Plex Mono','Playfair Display','Cormorant Garamond'];
 
+function _readStatCopy() {
+  return {
+    lblDist: document.getElementById('ps-label-dist')?.textContent ?? '',
+    lblTime: document.getElementById('ps-label-time')?.textContent ?? '',
+    lblSurf: document.getElementById('ps-label-surf')?.textContent ?? '',
+    valDist: document.getElementById('ps-val-dist')?.textContent ?? '',
+    valTime: document.getElementById('ps-val-time')?.textContent ?? '',
+    valSurf: document.getElementById('ps-val-surf')?.textContent ?? '',
+  };
+}
+
+function _applyStatCopy(c) {
+  if (!c) return;
+  const pairs = [
+    ['ps-label-dist', c.lblDist],
+    ['ps-label-time', c.lblTime],
+    ['ps-label-surf', c.lblSurf],
+    ['ps-val-dist', c.valDist],
+    ['ps-val-time', c.valTime],
+    ['ps-val-surf', c.valSurf],
+  ];
+  for (const [posterId, text] of pairs) {
+    const node = document.getElementById(posterId);
+    if (node) node.textContent = text ?? '';
+  }
+}
+
 // ── Undo / Redo History ───────────────────────────────────────────────────────
 const _undoStack = [], _redoStack = [];
 const MAX_HISTORY = 40;
@@ -31,6 +58,7 @@ function _captureState() {
     statsDisplay: document.getElementById('p-stats')?.style.display ?? '',
     legDisplay:   document.getElementById('p-legend')?.style.display ?? '',
     routeNodes:   JSON.parse(JSON.stringify(window._routeNodes ?? [])),
+    statCopy:     _readStatCopy(),
   };
 }
 
@@ -81,8 +109,10 @@ function _restoreState(state) {
     if (pl) pl.style.display = 'none';
   }
 
-  // Restore route nodes
+  // Restore route nodes (recalculates distance/time — setStatVal overwrites poster values)
   if (state.routeNodes) window._restoreRouteNodes?.(state.routeNodes);
+
+  if (state.statCopy) _applyStatCopy(state.statCopy);
 
   hideEditBar();
   _updateUndoUI();
@@ -147,7 +177,7 @@ window.rescaleElements = function(oldH, newH) {
 let textEls = [
   { id: 2, text: 'ROUTEFORGE',     size: 148, color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald',           x: 60, y: 62  },
   { id: 3, text: 'DATE',           size: 90,  color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald',           x: 62, y: 230 },
-  { id: 4, text: 'STARTING POINT', size: 50,  color: '#cccccc', bgColor: '#000000', removeBg: true, font: 'Barlow Condensed', x: 62, y: 340 },
+  { id: 4, text: 'STARTING POINT', size: 68,  color: '#cccccc', bgColor: '#000000', removeBg: true, font: 'Barlow Condensed', x: 62, y: 340 },
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -546,32 +576,113 @@ window.compositeMapCanvas  = compositeMapCanvas;
 
 // ── Text Elements ─────────────────────────────────────────────────────────────
 
+function textBoxSidebarTitle(el) {
+  if (el.id === 2) return 'Site title';
+  if (el.id === 3) return 'Date';
+  if (el.id === 4) return 'Starting line';
+  return 'Custom text';
+}
+
+function syncEditBarSizeFromPosterTe(te) {
+  const div = document.getElementById('pe-' + te.id);
+  if (!div || _selectedEl !== div) return;
+  const ev = document.getElementById('eb-sz-val');
+  if (ev) ev.textContent = String(Math.round(te.size));
+  positionEditBar(div);
+}
+
 function renderTextUI() {
   const list = document.getElementById('text-elements-list');
   if (!list) return;
   list.innerHTML = '';
   textEls.forEach(el => {
     const row = document.createElement('div');
-    row.className = 'tel-row-simple';
-    row.innerHTML = `
-      <span class="tel-name-label" style="flex:1;font-size:13px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${el.text}</span>
-      <button class="tel-del" title="Delete">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    `;
-    row.querySelector('.tel-del').addEventListener('click', () => {
+    row.className = 'tel-block';
+    row.dataset.peId = String(el.id);
+
+    const head = document.createElement('div');
+    head.className = 'tel-block-head';
+
+    const ttl = document.createElement('span');
+    ttl.className = 'tel-block-title';
+    ttl.textContent = textBoxSidebarTitle(el);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'tel-del';
+    del.title = 'Remove from poster';
+    del.setAttribute('aria-label', 'Delete text box');
+    del.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    del.addEventListener('click', () => {
       pushUndo();
       textEls = textEls.filter(t => t.id !== el.id);
       document.getElementById('pe-' + el.id)?.remove();
       hideEditBar();
       renderTextUI();
     });
+
+    head.appendChild(ttl);
+    head.appendChild(del);
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'tel-block-text';
+    inp.placeholder = 'Type here…';
+    inp.value = String(el.text).replace(/\n/g, ' ');
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
+    inp.addEventListener('input', () => {
+      el.text = inp.value;
+      syncDom(el);
+    });
+    inp.addEventListener('blur', () => { pushUndo(); });
+
+    const sizeTitle = document.createElement('div');
+    sizeTitle.className = 'lcard-title';
+    sizeTitle.style.marginTop = '6px';
+    sizeTitle.style.marginBottom = '2px';
+    sizeTitle.textContent = 'Size';
+
+    const sizeRow = document.createElement('div');
+    sizeRow.className = 'srow';
+
+    const slLo = document.createElement('span');
+    slLo.className = 'sl';
+    slLo.textContent = 'S';
+
+    const rng = document.createElement('input');
+    rng.type = 'range';
+    rng.min = '24';
+    rng.max = '220';
+    rng.step = '2';
+    rng.value = String(Math.round(el.size));
+
+    const slHi = document.createElement('span');
+    slHi.className = 'sl';
+    slHi.textContent = 'XL';
+
+    rng.addEventListener('input', () => {
+      el.size = +rng.value;
+      syncDom(el);
+      syncEditBarSizeFromPosterTe(el);
+    });
+    rng.addEventListener('change', () => pushUndo());
+
+    sizeRow.appendChild(slLo);
+    sizeRow.appendChild(rng);
+    sizeRow.appendChild(slHi);
+
+    row.appendChild(head);
+    row.appendChild(inp);
+    row.appendChild(sizeTitle);
+    row.appendChild(sizeRow);
+
     list.appendChild(row);
   });
 
   document.getElementById('btn-add-text').onclick = () => {
     pushUndo();
-    textEls.push({ id: Date.now(), text: 'NEW TEXT', size: 50, color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald', x: 80, y: 300 });
+    textEls.push({ id: Date.now(), text: 'NEW TEXT', size: 68, color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald', x: 80, y: 300 });
     renderTextUI(); renderTextPoster();
   };
 }
@@ -585,17 +696,18 @@ function syncDom(el) {
   d.style.background = el.removeBg ? 'transparent' : el.bgColor;
   d.style.padding    = el.removeBg ? '0' : '10px 20px';
   d.style.borderRadius = el.removeBg ? '0' : '6px';
+  updateTextListRow(el);
 }
 
 function updateTextListRow(teData) {
   const list = document.getElementById('text-elements-list');
   if (!list) return;
-  const rows = list.querySelectorAll('.tel-row-simple');
-  const idx = textEls.indexOf(teData);
-  if (rows[idx]) {
-    const lbl = rows[idx].querySelector('.tel-name-label');
-    if (lbl) lbl.textContent = teData.text;
-  }
+  const row = list.querySelector(`.tel-block[data-pe-id="${teData.id}"]`);
+  if (!row) return;
+  const ta = row.querySelector('.tel-block-text');
+  if (ta && document.activeElement !== ta) ta.value = teData.text;
+  const rng = row.querySelector('.tel-block input[type="range"]');
+  if (rng) rng.value = String(Math.round(teData.size));
 }
 
 function renderTextPoster() {
@@ -687,7 +799,10 @@ function initStatsCtrl() {
   window.setStatVal = function(key, text) {
     const map = { dist: 'ps-val-dist', time: 'ps-val-time', surf: 'ps-val-surf' };
     const pid = map[key];
-    if (pid) document.getElementById(pid).textContent = text;
+    if (pid) {
+      const n = document.getElementById(pid);
+      if (n) n.textContent = text;
+    }
   };
 
   function applyStatSize(v) {
@@ -865,10 +980,7 @@ function initDrag() {
     if (!el) return;
     // Already in text-edit mode — let the browser handle it completely
     if (el.contentEditable === 'true' || e.target.contentEditable === 'true') return;
-    // Note: stats card children (.ps-label/.ps-val/.ps-icon) are intentionally
-    // NOT excluded here. The 6px dead-zone in pointermove means a simple tap on
-    // those children still fires normally; only a real drag (≥6px movement) moves
-    // the card — consistent with how the legend card behaves.
+    // Stats / legend labels are not editable on-poster; drawer fields edit copy.
 
     // Arm drag for ALL elements on first touch — a quick tap (no movement)
     // still selects and shows the edit bar via the pointerup handler.
@@ -1400,7 +1512,6 @@ function initEditBar() {
     statsEl.addEventListener('pointerdown', e => { _sx = e.clientX; _sy = e.clientY; });
     statsEl.addEventListener('pointerup', e => {
       if (Math.hypot(e.clientX - _sx, e.clientY - _sy) >= 20) return;
-      if (e.target.contentEditable === 'true') return;
       if (_selectedEl) _selectedEl.classList.remove('poster-el-selected');
       _selectedEl = statsEl;
       statsEl.classList.add('poster-el-selected');
