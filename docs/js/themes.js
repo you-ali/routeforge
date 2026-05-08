@@ -8,17 +8,16 @@ const ROUTE_COLORS = [
   { id:'amber',      label:'Amber',       routeColor:'#FFB340', glowColor:'rgba(255,179,64,0.12)' },
   { id:'violet',     label:'Violet',      routeColor:'#B57AFF', glowColor:'rgba(181,122,255,0.12)' },
   { id:'hot-pink',   label:'Hot Pink',    routeColor:'#FF2D9B', glowColor:'rgba(255,45,155,0.12)' },
+  { id:'deep-red',   label:'Deep Red',    routeColor:'#C00000', glowColor:'rgba(192,0,0,0.14)' },
+  { id:'sand',       label:'Sand',        routeColor:'#F2CC8F', glowColor:'rgba(242,204,143,0.18)' },
 ];
 
 // All tile URLs use CartoDB (Carto) — free, no API key, no rate limit.
 // Subdomains a–d are declared on the tile layer (see map.js switchTileUrl).
 const MAP_STYLES = [
-  { id:'dark',    label:'Dark',    tileUrl:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                        mapBg:'#0a0a0a' },
-  { id:'light',   label:'Light',   tileUrl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                       mapBg:'#f0f0f0' },
-  { id:'warm',    label:'Warm',    tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',              mapBg:'#e8e4dc' },
-  { id:'minimal', label:'Minimal', tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',    mapBg:'#f5f5f0' },
-  { id:'sandy',   label:'Sandy',   tileUrl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                       mapBg:'#c8b08a', filterClass:'map-sandy' },
-  { id:'osm',     label:'OSM',     tileUrl:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                                   mapBg:'#f5f5f5' },
+  { id:'dark',  label:'Dark',  tileUrl:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',           mapBg:'#0a0a0a' },
+  { id:'light', label:'Light', tileUrl:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',          mapBg:'#f0f0f0' },
+  { id:'warm',  label:'Warm',  tileUrl:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', mapBg:'#e8e4dc' },
 ];
 
 let currentRoutePreset = ROUTE_COLORS[0];
@@ -82,7 +81,7 @@ function applyMapStyle(ms) {
   // Update the CSS variable — vignette strips and #app bg use this automatically
   document.documentElement.style.setProperty('--poster-bg', ms.mapBg);
   document.getElementById('app').style.background = ms.mapBg;
-  // Handle CSS filter classes (e.g. map-sandy)
+  // Optional CSS filter class per style (none of the current styles use one)
   const mapEl = document.getElementById('map');
   if (mapEl) {
     mapEl.dataset.filterClass && mapEl.classList.remove(mapEl.dataset.filterClass);

@@ -286,6 +286,7 @@ async function compositeMapCanvas() {
   if (!mainMapEl || !frameEl) return '';
 
   const frameRect = frameEl.getBoundingClientRect();
+  const mapRect   = mainMapEl.getBoundingClientRect();
   const frameW    = frameEl.offsetWidth;
   const frameH    = frameEl.offsetHeight;
   const sc        = frameRect.width / frameW;   // CSS scale of the poster frame
@@ -354,10 +355,11 @@ async function compositeMapCanvas() {
   }
 
   // ── Route polyline — drawn from lat/lng via latLngToContainerPoint ───
-  // This completely bypasses SVG serialisation. Leaflet's latLngToContainerPoint
-  // returns pixels relative to the map container's top-left, which coincides
-  // with the frame's top-left in the app layout (both at appLeft, appTop).
-  // So natural canvas position = (containerPt.x / sc, containerPt.y / sc).
+  // Container points are relative to #map's top-left. Tiles/markers use toNat()
+  // on getBoundingClientRect(), i.e. screen position minus frameRect, / sc.
+  // The frame is translate+scale(transform) on top of the full map, so its
+  // visual origin rarely equals map (0,0) — we must use the same frame-relative
+  // math as the tiles or the line shifts (often vertically when oy ≠ 0).
   const routeData = window.currentRouteData;
   const lMap      = window._leafletMap;
   if (routeData?.geojson?.coordinates && lMap) {
@@ -367,8 +369,11 @@ async function compositeMapCanvas() {
     const rw = window.getRouteWidth?.() || 7;
 
     const pts = coords.map(([lng, lat]) => {
-      const cp = lMap.latLngToContainerPoint([lat, lng]);
-      return { x: cp.x / sc, y: cp.y / sc };
+      const cp = lMap.latLngToContainerPoint(L.latLng(lat, lng));
+      return {
+        x: (mapRect.left + cp.x - frameRect.left) / sc,
+        y: (mapRect.top  + cp.y - frameRect.top)  / sc,
+      };
     });
 
     if (pts.length >= 2) {

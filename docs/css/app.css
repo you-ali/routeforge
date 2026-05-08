@@ -128,11 +128,6 @@ input,select{font-family:inherit}
 }
 .leaflet-control-attribution{display:none!important}
 
-/* Sandy/tan map filter */
-#map.map-sandy .leaflet-tile-pane{
-  filter:sepia(0.9) saturate(0.85) brightness(0.82);
-}
-
 /* ─── Vignette strips — solid cover outside #poster-frame ────────────
    z-index 5: above the isolated #map, below #poster-frame (10). */
 .vignette-strip{
