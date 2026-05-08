@@ -163,7 +163,7 @@ function renderRouteOnGroup(geojson, group) {
     const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
     const br  = getBearing(a, b);
     const h   = `<svg viewBox="0 0 12 14" width="16" height="18" style="display:block;transform:rotate(${br}deg);transform-origin:50% 50%"><path d="M6 0L12 11L6 7.5L0 11Z" fill="${rc}" opacity="0.95"/></svg>`;
-    L.marker(mid, { icon: L.divIcon({ className: '', html: h, iconSize: [16, 18], iconAnchor: [8, 9] }), interactive: false, zIndexOffset: 200 }).addTo(group);
+    L.marker(mid, { icon: L.divIcon({ className: 'route-arrow-icon', html: h, iconSize: [16, 18], iconAnchor: [8, 9] }), interactive: false, zIndexOffset: 200 }).addTo(group);
   }
 
   if (coords.length <= 10) {

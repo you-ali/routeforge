@@ -278,8 +278,9 @@ function drawImageFromBlobUrl(ctx, burl, x, y, w, h) {
 }
 
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
-// Draws tiles directly from <img> elements (CORS-clean), routes via latLngToContainerPoint
-// (bypasses SVG serialisation), and markers via XMLSerializer on the inner <svg> only.
+// Draw at logical poster size (frameW×frameH), then scale the bitmap up for hi-res output.
+// Mixing ctx.scale() with stroked paths + drawImage() skews line thickness vs icon size
+// relative to on-screen Leaflet; a single final drawImage scale keeps proportions correct.
 async function compositeMapCanvas() {
   const mainMapEl = document.getElementById('map');
   const frameEl   = document.getElementById('poster-frame');
@@ -293,10 +294,9 @@ async function compositeMapCanvas() {
 
   const SCALE = 2;
   const canvas = document.createElement('canvas');
-  canvas.width  = frameW * SCALE;
-  canvas.height = frameH * SCALE;
+  canvas.width  = frameW;
+  canvas.height = frameH;
   const ctx = canvas.getContext('2d');
-  ctx.scale(SCALE, SCALE);
 
   // Background colour
   const bg = getComputedStyle(document.documentElement)
@@ -344,7 +344,6 @@ async function compositeMapCanvas() {
     // iOS Safari fallback: fetch each tile as a same-origin blob URL.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.scale(SCALE, SCALE);
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, frameW, frameH);
     for (const t of tileEls) {
@@ -393,13 +392,70 @@ async function compositeMapCanvas() {
       stroke(gc, rw * 4, 0.15);   // glow
       stroke(rc, rw,     1.0);    // main line
     }
+
+    // ── Route arrows (same geometry as map.js renderRouteOnGroup / placeArrow) ──
+    // Do not rasterise arrow divIcons — DOM bbox vs SVG anchor caused position ("forward")
+    // drift and wrong size. Draw the glyph in pixel space with anchor at geographic midpoint.
+    const cl = coords.map(([lng, lat]) => [lat, lng]);
+    const segmentBearing = (a, b) => {
+      const r = Math.PI / 180;
+      const y = Math.sin((b[1] - a[1]) * r) * Math.cos(a[0] * r);
+      const x0 = Math.cos(a[0] * r) * Math.sin(b[0] * r) - Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
+      return (Math.atan2(y, x0) * 180 / Math.PI + 360) % 360;
+    };
+    const toPosterPt = (lat, lng) => {
+      const cp = lMap.latLngToContainerPoint(L.latLng(lat, lng));
+      return {
+        x: (mapRect.left + cp.x - frameRect.left) / sc,
+        y: (mapRect.top  + cp.y - frameRect.top)  / sc,
+      };
+    };
+    const u = 1 / sc;
+    const drawArrowGlyph = (px, py, bearingDeg) => {
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate((bearingDeg * Math.PI) / 180);
+      ctx.beginPath();
+      // Same path as map.js: viewBox 0 0 12 14, displayed 16×18, iconAnchor [8,9] = box centre
+      const vb = [[6, 0], [12, 11], [6, 7.5], [0, 11]];
+      for (let i = 0; i < vb.length; i++) {
+        const ox = (vb[i][0] / 12) * 16 - 8;
+        const oy = (vb[i][1] / 14) * 18 - 9;
+        const X = ox * u, Y = oy * u;
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = rc;
+      ctx.globalAlpha = 0.95;
+      ctx.fill();
+      ctx.restore();
+    };
+    if (cl.length >= 2) {
+      if (cl.length <= 10) {
+        for (let i = 0; i < cl.length - 1; i++) {
+          const a = cl[i], b = cl[i + 1];
+          const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+          const br = segmentBearing(a, b);
+          const p  = toPosterPt(mid[0], mid[1]);
+          drawArrowGlyph(p.x, p.y, br);
+        }
+      } else {
+        const step = Math.max(6, Math.floor(cl.length / 6));
+        for (let i = step; i < cl.length - step; i += step) {
+          const a = cl[i - 1], b = cl[i + 1];
+          const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+          const br = segmentBearing(a, b);
+          const p  = toPosterPt(mid[0], mid[1]);
+          drawArrowGlyph(p.x, p.y, br);
+        }
+      }
+    }
   }
 
-  // ── Markers (start / end / waypoint + arrow divIcons) ───────────────
-  // Marker divs are precisely positioned by Leaflet; their getBoundingClientRect
-  // gives the correct screen position. We serialise only the inner <svg> so
-  // XMLSerializer adds the required xmlns declaration.
+  // ── Markers (start / end) — exclude route arrows (drawn above) & midpoints ──
   for (const mk of mainMapEl.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon')) {
+    if (mk.classList.contains('midpoint-dot')) continue;
+    if (mk.classList.contains('route-arrow-icon')) continue;
     const svgEl = mk.querySelector('svg');
     if (!svgEl) continue;
     try {
@@ -421,8 +477,18 @@ async function compositeMapCanvas() {
     } catch (_) {}
   }
 
+  // Hi-res: uniform scale of the full composite so route thickness and arrow icons
+  // stay in the same proportion as on-screen Leaflet (see header comment).
+  const out = document.createElement('canvas');
+  out.width  = frameW * SCALE;
+  out.height = frameH * SCALE;
+  const octx = out.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.imageSmoothingQuality = 'high';
+  octx.drawImage(canvas, 0, 0, out.width, out.height);
+
   try {
-    return canvas.toDataURL('image/png');
+    return out.toDataURL('image/png');
   } catch (e) {
     console.warn('compositeMapCanvas: toDataURL failed', e);
     return '';
