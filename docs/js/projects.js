@@ -449,13 +449,18 @@ async function _commitSaveToLibraryFromModal() {
     inp?.focus();
     return;
   }
-  const isNew = !_activeProjectId;
+  const prevName = (_activeProjectName || '').trim();
+  const saveAsNewCopy =
+    !_activeProjectId || name.toLowerCase() !== prevName.toLowerCase();
   let ok = false;
-  if (_activeProjectId) {
-    ok = await updateActiveProject(name);
-  } else {
+  let isNew = false;
+  if (saveAsNewCopy) {
     const id = await saveCurrentProject(name);
     ok = id != null;
+    isNew = true;
+  } else {
+    ok = await updateActiveProject(name);
+    isNew = false;
   }
   if (!ok) return;
   _closeSaveToLibraryModal();

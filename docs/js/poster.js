@@ -588,17 +588,14 @@ async function compositeMapCanvas(opts) {
     } catch (_) {}
   }
 
-  // Library thumbnails: rasterise map into #poster-map-img, then capture the full frame
-  // (stats, legend, text, logo) like export — compositeMapCanvas alone only has tiles+route.
+  // Library thumbnails: overlays live in #poster-els. Do NOT send the map bitmap
+  // through dom-to-image (unreliable for large data: URLs on mobile — map disappears,
+  // only overlays remain). Composite: canvas map + dom-to-image(poster-els) on top.
   if (withOverlay && typeof domtoimage !== 'undefined') {
-    const mapImgEl = document.getElementById('poster-map-img');
+    const posterEls = document.getElementById('poster-els');
     try {
-      if (mapImgEl) {
-        const mapDataUrl = canvas.toDataURL('image/png');
-        const savedImgStyle = mapImgEl.style.cssText;
-        const savedImgSrc = mapImgEl.getAttribute('src');
-
-        const textNodes = frameEl.querySelectorAll('.ps-val,.ps-label,.ps-icon,.p-text,.pl-label,.pl-icon');
+      if (posterEls) {
+        const textNodes = posterEls.querySelectorAll('.ps-val,.ps-label,.ps-icon,.p-text,.pl-label,.pl-icon');
         const savedText = [];
         textNodes.forEach((el) => {
           savedText.push(el.style.cssText);
@@ -610,7 +607,7 @@ async function compositeMapCanvas(opts) {
 
         const savedBoxes = [];
         for (const id of ['p-stats', 'p-legend', 'p-brand']) {
-          const el = frameEl.querySelector('#' + id);
+          const el = posterEls.querySelector('#' + id) || frameEl.querySelector('#' + id);
           if (!el) continue;
           savedBoxes.push([el, el.style.cssText]);
           const cs = getComputedStyle(el);
@@ -621,21 +618,13 @@ async function compositeMapCanvas(opts) {
           el.style.border = cs.border;
         }
 
-        mapImgEl.src = mapDataUrl;
-        mapImgEl.style.display = 'block';
-        applyMapOffset(mapImgEl);
-        await (mapImgEl.decode?.().catch(() => {}) ??
-          new Promise((r) => {
-            mapImgEl.onload = r;
-            mapImgEl.onerror = r;
-            setTimeout(r, 4000);
-          }));
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        const fullUrl = await domtoimage.toPng(frameEl, {
+        const overlayUrl = await domtoimage.toPng(posterEls, {
           width: frameW,
           height: frameH,
           style: { transform: 'none', transformOrigin: 'top left' },
+          bgcolor: 'transparent',
         });
 
         textNodes.forEach((el, i) => {
@@ -644,18 +633,14 @@ async function compositeMapCanvas(opts) {
         savedBoxes.forEach(([el, snap]) => {
           el.style.cssText = snap;
         });
-        mapImgEl.style.cssText = savedImgStyle;
-        if (savedImgSrc) mapImgEl.setAttribute('src', savedImgSrc);
-        else mapImgEl.removeAttribute('src');
 
-        const fullImg = new Image();
+        const overlayImg = new Image();
         await new Promise((res, rej) => {
-          fullImg.onload = res;
-          fullImg.onerror = rej;
-          fullImg.src = fullUrl;
+          overlayImg.onload = res;
+          overlayImg.onerror = rej;
+          overlayImg.src = overlayUrl;
         });
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(fullImg, 0, 0, frameW, frameH);
+        ctx.drawImage(overlayImg, 0, 0, frameW, frameH);
       }
     } catch (e) {
       console.warn('compositeMapCanvas withOverlay', e);

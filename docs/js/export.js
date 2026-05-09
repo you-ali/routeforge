@@ -7,6 +7,54 @@ document.addEventListener('DOMContentLoaded', () => {
 const INLINE_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight',
                       'lineHeight', 'letterSpacing', 'textTransform', 'opacity'];
 
+/** Phone / PWA: prefer system share so user can Save to Photos; desktop keeps file download */
+function _preferNativeGalleryShare() {
+  if (typeof navigator.share !== 'function') return false;
+  const narrow = window.matchMedia('(max-width: 899px)').matches;
+  const standalone =
+    window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const touch = (navigator.maxTouchPoints || 0) > 0;
+  return narrow || standalone || (touch && coarse);
+}
+
+/**
+ * @param {string} dataUrl png data URL from dom-to-image
+ * @param {string} filename
+ * @returns {'shared'|'aborted'|'unsupported'}
+ */
+async function _sharePngForGallery(dataUrl, filename) {
+  if (typeof navigator.canShare !== 'function') return 'unsupported';
+  let file;
+  try {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    file = new File([blob], filename, { type: 'image/png' });
+  } catch {
+    return 'unsupported';
+  }
+  if (!navigator.canShare({ files: [file] })) return 'unsupported';
+  try {
+    await navigator.share({
+      files: [file],
+      title: 'RouteForge',
+    });
+    return 'shared';
+  } catch (e) {
+    if (e && e.name === 'AbortError') return 'aborted';
+    console.warn('navigator.share', e);
+    return 'unsupported';
+  }
+}
+
+function _triggerPngDownload(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = dataUrl;
+  a.click();
+}
+
 async function doExport() {
   if (!window.currentRouteData) { showToast('Draw a route first'); return; }
 
@@ -43,6 +91,7 @@ async function doExport() {
   const dims    = { portrait: { w: 1080, h: 1350 }, square: { w: 1080, h: 1080 }, landscape: { w: 1080, h: 566 } };
   const sizeKey = Array.from(frame.classList).find(c => c.startsWith('size-'))?.replace('size-', '') || 'portrait';
   const { w, h } = dims[sizeKey] || dims.portrait;
+  const filename = `RouteForge-${sizeKey}-${w}x${h}.png`;
 
   // Show the captured map image so dom-to-image sees the full poster.
   // On screen the frame is transparent (real map shows through), but for
@@ -66,10 +115,22 @@ async function doExport() {
       // Strip the CSS scale so dom-to-image sees the frame at natural 1080 px
       style: { transform: 'none', transformOrigin: 'top left' }
     });
-    const a = document.createElement('a');
-    a.download = `step6ix-run-${w}x${h}.png`;
-    a.href = url; a.click();
-    showToast(`Saved ${w}×${h} px ✓`);
+
+    let usedShare = false;
+    if (_preferNativeGalleryShare()) {
+      const shareResult = await _sharePngForGallery(url, filename);
+      if (shareResult === 'shared') {
+        showToast(`Tap “Save Image” (or Photos) in the share sheet — ${w}×${h}px`);
+        usedShare = true;
+      } else if (shareResult === 'aborted') {
+        showToast('Export cancelled');
+        usedShare = true;
+      }
+    }
+    if (!usedShare) {
+      _triggerPngDownload(url, filename);
+      showToast(`Saved ${w}×${h}px`);
+    }
   } catch (e) {
     console.error(e);
     showToast('Export failed — try again');
