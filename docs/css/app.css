@@ -1577,7 +1577,8 @@ input[type="range"]::-webkit-slider-thumb{
    Installed PWA — html.pwa-standalone set in index.html <head>
    iOS home screen often ignores @media (display-mode: standalone); use
    navigator.standalone + matchMedia. Fix top chrome to safe areas; on phones,
-   size #app with svh so layout matches the real screen (not in-browser URL bar).
+   size #app height via JS (layoutPwaAppShell) — iOS *vh units often stay on the
+   in-browser layout viewport after Add to Home Screen.
    ════════════════════════════════════════════════════════════════════ */
 html.pwa-standalone{
   height:100%;
@@ -1605,17 +1606,17 @@ html.pwa-standalone .topbar-history{
 }
 
 @media(max-width:899px){
-  /* Prefer svh in standalone — 100dvh/100vh still reflect “browser UI” layout on some iOS builds */
+  /* JS sets #app height from tab bar geometry — see layoutPwaAppShell() in builder.js */
   html.pwa-standalone #app{
     bottom:auto;
-    height:calc(100vh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
-    height:calc(100dvh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
-    height:calc(100svh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
+    /* Fallback until layoutPwaAppShell() sets an exact pixel height (overrides this) */
+    height:calc(100lvh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
   }
   html.pwa-standalone #drawer.expanded .drawer-panel{
+    --drawer-sheet-h:calc(0.74 * (var(--rf-vvpx, 812) * 1px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
     max-height:min(
       var(--drawer-sheet-h),
-      calc(100svh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px) - 12px)
+      calc((var(--rf-vvpx, 812) * 1px) - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px) - 12px)
     );
   }
 }

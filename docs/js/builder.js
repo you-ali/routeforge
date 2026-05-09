@@ -12,6 +12,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initThemes();
   initDrawerTabs();
   initDrawer();
+
+  /** iOS “Add to Home Screen”: CSS *vh often still matches in-Safari layout — size #app from geometry. */
+  function layoutPwaAppShell() {
+    const root = document.documentElement;
+    const app = document.getElementById('app');
+    if (!app) return;
+    if (!root.classList.contains('pwa-standalone')) {
+      app.style.removeProperty('height');
+      root.style.removeProperty('--rf-vvpx');
+      return;
+    }
+    const vvH = window.visualViewport?.height ?? window.innerHeight;
+    root.style.setProperty('--rf-vvpx', String(Math.round(vvH)));
+    if (!window.matchMedia('(max-width: 899px)').matches) {
+      app.style.removeProperty('height');
+      return;
+    }
+    const tabs = document.querySelector('#drawer .drawer-tabs');
+    if (!tabs) return;
+    const tTop = tabs.getBoundingClientRect().top;
+    const aTop = app.getBoundingClientRect().top;
+    app.style.height = `${Math.max(0, Math.round(tTop - aTop))}px`;
+  }
+  window.layoutPwaAppShell = layoutPwaAppShell;
+
+  const onResizeShell = () =>
+    requestAnimationFrame(() => {
+      layoutPwaAppShell();
+      window.scalePoster?.();
+      window._leafletMap?.invalidateSize({ animate: false });
+    });
+  window.addEventListener('resize', onResizeShell);
+  window.visualViewport?.addEventListener('resize', onResizeShell);
+  window.visualViewport?.addEventListener('scroll', onResizeShell);
+
+  requestAnimationFrame(() => {
+    layoutPwaAppShell();
+    requestAnimationFrame(() => {
+      layoutPwaAppShell();
+      window.scalePoster?.();
+      window._leafletMap?.invalidateSize({ animate: false });
+    });
+  });
+
   addNode(); addNode();
 
   document.getElementById('btn-toggle-draw').addEventListener('click', () => {
@@ -97,10 +141,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       captureMapEl.style.height = (CAPTURE_H_MAP[newSize] || 937) + 'px';
       window._captureMap?.invalidateSize({ animate: false });
     }
-    requestAnimationFrame(() => window.scalePoster?.());
+    requestAnimationFrame(() => {
+      window.layoutPwaAppShell?.();
+      window.scalePoster?.();
+    });
   }));
-
-  window.addEventListener('resize', () => requestAnimationFrame(() => window.scalePoster?.()));
 });
 
 function uid() { return Date.now() + Math.random(); }
