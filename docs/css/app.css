@@ -1574,47 +1574,22 @@ input[type="range"]::-webkit-slider-thumb{
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   Installed PWA (html.pwa-standalone)
-   - status bar: black-translucent + dark html/body so the notch band isn’t white.
-   - Phone: extend #topbar into safe-area-top (same dark glass) so the strip
-     above controls matches the header (not system white / light-mode chrome).
-   - Lock phone html/body + layoutPwaAppShell keeps bottom tabs aligned.
+   Installed PWA (html.pwa-standalone) — iOS WebKit quirks
+   - black-translucent + manual safe-area often double-counts vs the webview inset.
+   - Use opaque status bar (meta black) and match topbar/#app to the normal site shell.
+   - Lock html/body with position:fixed to stop stray scroll offset from shifting fixed UI.
+   - Phone #app height: layoutPwaAppShell() measures tab bar → app (innerHeight-based).
    ════════════════════════════════════════════════════════════════════ */
 html.pwa-standalone{
   height:100%;
   height:-webkit-fill-available;
   overflow:hidden;
-  background:var(--poster-bg,#0a0a0a);
+  background-color:var(--poster-bg);
   color-scheme:dark;
 }
 
-@media(min-width:900px){
-  html.pwa-standalone{
-    background:var(--bg);
-    color-scheme:light;
-  }
-}
-
-html.pwa-standalone body{
-  min-height:100%;
-  min-height:-webkit-fill-available;
-  overscroll-behavior:none;
-  background:var(--poster-bg,#0a0a0a);
-}
-
-@media(min-width:900px){
-  html.pwa-standalone body{
-    background:var(--bg);
-  }
-}
-
 @media(max-width:899px){
-  html.pwa-standalone body{
-    background:var(--poster-bg,#0a0a0a);
-    color-scheme:dark;
-  }
-
-  /* Phone PWA: lock the document box so fixed UI isn’t offset by phantom scroll */
+  /* Phone PWA: lock the document box so fixed UI isn’t offset by phantom scroll / URL-bar viewport */
   html.pwa-standalone{
     position:fixed;
     width:100%;
@@ -1633,26 +1608,29 @@ html.pwa-standalone body{
     min-height:0;
     -webkit-overflow-scrolling:auto;
   }
-
-  /* Fill status bar / notch with the same chrome as the top bar */
   html.pwa-standalone #topbar{
-    padding:env(safe-area-inset-top, 0px) 8px 0;
-    box-sizing:border-box;
-    height:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    /* Glass + backdrop looks washed out/light above the map strip — use solid dark in PWA only */
+    background:var(--mob-glass-solid);
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
   }
   html.pwa-standalone #app{
-    top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
     bottom:auto;
-    height:calc(100lvh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
-  }
-  html.pwa-standalone .topbar-history{
-    top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 12px);
+    /* Fallback until layoutPwaAppShell() sets pixel height */
+    height:calc(100lvh - var(--topbar-h) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
   }
   html.pwa-standalone #drawer.expanded .drawer-panel{
     --drawer-sheet-h:calc(0.74 * (var(--rf-vvpx, 812) * 1px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
     max-height:min(
       var(--drawer-sheet-h),
-      calc((var(--rf-vvpx, 812) * 1px) - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px) - 12px)
+      calc((var(--rf-vvpx, 812) * 1px) - var(--topbar-h) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px) - 12px)
     );
   }
+}
+
+html.pwa-standalone body{
+  min-height:100%;
+  min-height:-webkit-fill-available;
+  overscroll-behavior:none;
+  background-color:var(--poster-bg);
 }
