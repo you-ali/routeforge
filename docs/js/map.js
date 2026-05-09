@@ -130,6 +130,7 @@ function switchTileUrl(url) {
   if (tileLayer) map.removeLayer(tileLayer);
   tileLayer = L.tileLayer(url, { subdomains: 'abcd', crossOrigin: 'anonymous' }).addTo(map);
   tileLayer.setZIndex(0);
+  window._leafletTileLayer = tileLayer;
   window._tilesReady = false;
   tileLayer.on('loading', () => { window._tilesReady = false; });
   tileLayer.on('load',    () => { window._tilesReady = true;  });

@@ -74,8 +74,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('poster-map-img').style.display = 'none';
     document.getElementById('reset-confirm').style.display = 'none';
     renderNodes();
-    // Reset peek
-    setPeekStats('—', '—');
   });
   document.getElementById('confirm-no').addEventListener('click', () =>
     document.getElementById('reset-confirm').style.display = 'none'
@@ -199,18 +197,8 @@ function doRoute() {
   window.setStatVal?.('time', timeText);
   window.setStatVal?.('surf', 'PAVEMENT');
 
-  // Update the drawer peek stats
-  setPeekStats((rd.distance_m / 1000).toFixed(1), String(m));
-
   // Capture the route for export (delayed so tiles have loaded)
   setTimeout(() => window.updatePosterPreview?.({ resetPan: true }), 800);
-}
-
-function setPeekStats(dist, time) {
-  const pd = document.getElementById('peek-val-dist');
-  const pt = document.getElementById('peek-val-time');
-  if (pd) pd.textContent = dist;
-  if (pt) pt.textContent = time;
 }
 
 function updateBanner(override) {
@@ -271,31 +259,54 @@ function expandDrawer() {
 
 function initDrawer() {
   const drawer = document.getElementById('drawer');
+  const panel = drawer?.querySelector('.drawer-panel');
+  const tabBar = drawer?.querySelector('.drawer-tabs');
   const handle = document.getElementById('drawer-handle');
-  const peek   = document.getElementById('drawer-peek');
   if (!drawer) return;
 
-  // Tap handle or peek row to toggle
-  handle?.addEventListener('click', () => drawer.classList.toggle('expanded'));
-  peek?.addEventListener('click', () => drawer.classList.add('expanded'));
+  const isMobileDrawer = () => window.matchMedia('(max-width: 899px)').matches;
 
-  // Touch-swipe: quick upward flick expands, downward flick collapses
-  let touchStartY = 0;
-  drawer.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
-  drawer.addEventListener('touchend', e => {
-    const dy = touchStartY - e.changedTouches[0].clientY;
-    if (dy > 40) expandDrawer();
-    else if (dy < -40) collapseDrawer();
-  }, { passive: true });
+  handle?.addEventListener('click', () => {
+    if (isMobileDrawer()) collapseDrawer();
+    else drawer.classList.toggle('expanded');
+  });
 
-  // On desktop the drawer is always a sidebar — nothing to toggle
+  const bindSheetSwipe = (el) => {
+    if (!el) return;
+    let touchStartY = 0;
+    el.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (!isMobileDrawer()) return;
+      const dy = touchStartY - e.changedTouches[0].clientY;
+      if (dy > 40) expandDrawer();
+      else if (dy < -40) collapseDrawer();
+    }, { passive: true });
+  };
+  bindSheetSwipe(panel);
+  bindSheetSwipe(tabBar);
 }
 
 function initDrawerTabs() {
+  const mq = window.matchMedia('(max-width: 899px)');
   document.querySelectorAll('.dtab').forEach(t => t.addEventListener('click', () => {
+    const drawer = document.getElementById('drawer');
+    if (!drawer) return;
+
+    const wasActive = t.classList.contains('active');
+    const expanded = drawer.classList.contains('expanded');
+
+    if (mq.matches && wasActive && expanded) {
+      collapseDrawer();
+      return;
+    }
+
     document.querySelectorAll('.dtab').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.dtab-pane').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('dtab-' + t.dataset.tab)?.classList.add('active');
+
+    if (mq.matches) expandDrawer();
   }));
 }

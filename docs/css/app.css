@@ -19,15 +19,17 @@
   --drawer-peek-h:80px;
   --sidebar-w:280px;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{
+  box-sizing:border-box;margin:0;padding:0;
+  /* Stops double-tap *page* zoom on mobile (use with viewport max-scale); overridden on poster draggables. */
+  touch-action:manipulation;
+}
 html{
   -webkit-text-size-adjust:100%;
   text-size-adjust:100%;
 }
-html,body{height:100%;overflow:hidden;touch-action:none}
+html,body{height:100%;overflow:hidden;}
 body{font-family:-apple-system,'SF Pro Text','Inter','Helvetica Neue',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
-/* Allow the Leaflet map and scrollable drawer to pan normally */
-#map,#capture-map,.drawer-content,.drawer-tabs{touch-action:pan-x pan-y}
 button{font-family:inherit;cursor:pointer;border:none}
 input,select{font-family:inherit}
 
@@ -119,7 +121,6 @@ input,select{font-family:inherit}
   bottom:var(--drawer-peek-h);
   background:var(--poster-bg);
   overflow:hidden;
-  touch-action:none;
 }
 
 /* ─── Leaflet map ─────────────────────────────────────────────────────
@@ -302,23 +303,32 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
 .has-border{border:2px solid rgba(255,255,255,.8)!important;border-radius:4px}
 
 /* ════════════════════════════════════════════════════════════════════
-   DRAWER  (bottom-sheet on mobile · left sidebar on desktop ≥ 900px)
+   DRAWER  (base rules — overridden: touch UI ≤899px · sidebar ≥900px)
    ════════════════════════════════════════════════════════════════════ */
 #drawer{
   position:fixed;
   bottom:0;left:0;right:0;
-  height:var(--drawer-peek-h);
+  height:auto;
+  max-height:85vh;
   z-index:450;
   background:var(--panel);
   border-radius:18px 18px 0 0;
   border-top:1px solid var(--border);
   box-shadow:0 -6px 32px rgba(0,0,0,.14);
-  display:flex;flex-direction:column;
+  display:flex;
+  flex-direction:column;
   overflow:hidden;
-  transition:height .32s cubic-bezier(.4,0,.2,1);
-  will-change:height;
 }
-#drawer.expanded{height:74vh}
+#drawer.expanded{
+  max-height:min(90vh, 920px);
+}
+.drawer-panel{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
 
 /* Drag handle */
 .drawer-handle{
@@ -327,19 +337,6 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
   transition:opacity .15s;
 }
 .drawer-handle:active{cursor:grabbing;opacity:.6}
-
-/* Peek row */
-.drawer-peek{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 18px 10px;flex-shrink:0;cursor:pointer;
-  min-height:34px;
-}
-.peek-stats{display:flex;align-items:baseline;gap:8px}
-.peek-stat{display:flex;align-items:baseline;gap:3px}
-.peek-val{font-size:20px;font-weight:800;letter-spacing:-.04em;color:var(--t1)}
-.peek-lbl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
-.peek-sep{font-size:16px;color:var(--t3);font-weight:300;margin:0 2px}
-.peek-hint{font-size:11px;color:var(--blue);font-weight:600;letter-spacing:.01em}
 
 /* Tab bar */
 .drawer-tabs{
@@ -357,6 +354,7 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
   -webkit-tap-highlight-color:transparent;
   min-height:44px;display:flex;align-items:center;justify-content:center;
 }
+.dtab-label{display:block;line-height:1.2}
 .dtab.active{color:var(--t1);border-bottom-color:var(--t1)}
 
 /* Drawer content */
@@ -379,16 +377,74 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
     width:var(--sidebar-w);
     border-radius:0;border-top:none;
     border-right:1px solid var(--border);
-    height:auto;box-shadow:none;
-    overflow-y:auto;overflow-x:hidden;
-    display:block;
+    height:auto;
+    max-height:none;
+    box-shadow:none;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    pointer-events:auto;
+    background:var(--panel);
+    padding:0;
+    margin:0;
+    z-index:450;
   }
-  .drawer-handle,.drawer-peek{display:none}
-  .drawer-tabs{display:flex;position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);background:var(--panel)}
+  .drawer-handle{display:none}
+  .drawer-panel{
+    order:2;
+    flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    position:static;
+    inset:auto;
+    width:auto;
+    max-width:none;
+    height:auto;
+    max-height:none;
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    border:none;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    transition:none;
+    isolation:auto;
+    z-index:auto;
+  }
+  .drawer-tabs{
+    order:1;
+    flex-shrink:0;
+    display:flex;
+    position:sticky;
+    top:0;
+    z-index:10;
+    border-bottom:1px solid var(--border);
+    background:var(--panel);
+    left:auto;
+    right:auto;
+    bottom:auto;
+    width:auto;
+    padding:0 12px;
+    border-top:none;
+    box-shadow:none;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+  .dtab-icon{display:none}
   .dtab{font-size:11px;padding:10px 4px}
   .drawer-content{
-    flex:1;overflow-y:auto;overflow-x:hidden;
-    display:flex;flex-direction:column;gap:10px;
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
     padding:14px 12px 24px;
     -webkit-overflow-scrolling:touch;
   }
@@ -615,11 +671,323 @@ input[type="range"]::-webkit-slider-thumb{
 .eb-arrow.flip::before{border-top:none;border-bottom:7px solid #111}
 
 /* ════════════════════════════════════════════════════════════════════
-   MOBILE  (≤ 599px)
+   TOUCH / COMPACT  (≤ 899px) — same UI as phone; no separate tablet drawer
    ════════════════════════════════════════════════════════════════════ */
-@media(max-width:599px){
+/* ─── Bottom sheet: tabs-only bar · sheet opens per tab ────────────── */
+@media(max-width:899px){
+  /* Dark shell (FotMob-style): map stays dark; glass bar + sheet match reference. */
+  html,body{background:var(--poster-bg)}
 
-  /* ── 1. Map controls — horizontal row, top-right ────────────────── */
+  :root{
+    /* Collapsed: icon tab row only (+ safe area applied on #drawer) */
+    --drawer-peek-h:64px;
+    /* FotMob-style tab accent / muted labels */
+    --mob-tab-active:#45d957;
+    --mob-tab-muted:#8e8e93;
+    --mob-glass-bg:rgba(10,10,12,.84);
+    --mob-glass-solid:#101012;
+    --mob-sheet-bg:#000000;
+    --mob-card-bg:#1c1c1e;
+    --mob-card-border:rgba(255,255,255,.09);
+    --mob-text:rgba(255,255,255,.92);
+    --mob-text-dim:rgba(235,235,245,.55);
+    --mob-link:#5ac8fa;
+    --drawer-sheet-dur:0.44s;
+    --drawer-sheet-ease:cubic-bezier(0.32,0.72,0,1);
+  }
+
+  #app{
+    bottom:calc(var(--drawer-peek-h) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /*
+   * Mobile: tab bar and sheet are separate fixed layers (z-index 460 vs 450).
+   * The sheet never stacks above the tabs, and glass styling stays identical
+   * open/closed so the bar doesn’t shift color or position.
+   */
+  #drawer{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    padding:0 !important;
+    margin:0 !important;
+    z-index:440;
+    overflow:visible;
+    max-height:none !important;
+    display:block;
+  }
+
+  #drawer > .drawer-panel,
+  #drawer > .drawer-tabs{
+    pointer-events:auto;
+  }
+
+  #drawer .drawer-tabs{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:460;
+    margin-top:0;
+    flex:unset;
+    padding:6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+    gap:0;
+    background:var(--mob-glass-bg);
+    -webkit-backdrop-filter:saturate(185%) blur(24px);
+    backdrop-filter:saturate(185%) blur(24px);
+    border-top:0.5px solid rgba(255,255,255,.06);
+    border-bottom:none;
+    box-shadow:0 -4px 28px rgba(0,0,0,.48);
+  }
+
+  #drawer .drawer-panel{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:calc(var(--drawer-peek-h) + env(safe-area-inset-bottom, 0px));
+    z-index:450;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    width:100%;
+    height:0;
+    max-height:0;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    border-radius:14px 14px 0 0;
+    border:0.5px solid rgba(255,255,255,.07);
+    border-bottom:none;
+    background:var(--mob-glass-bg);
+    -webkit-backdrop-filter:saturate(185%) blur(24px);
+    backdrop-filter:saturate(185%) blur(24px);
+    box-shadow:0 -10px 36px rgba(0,0,0,.5);
+    transition:
+      height var(--drawer-sheet-dur) var(--drawer-sheet-ease),
+      max-height var(--drawer-sheet-dur) var(--drawer-sheet-ease),
+      opacity var(--drawer-sheet-dur) var(--drawer-sheet-ease),
+      visibility 0s linear var(--drawer-sheet-dur);
+    isolation:isolate;
+  }
+
+  #drawer.expanded .drawer-panel{
+    --drawer-sheet-h:calc(74vh - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
+    height:var(--drawer-sheet-h);
+    max-height:min(var(--drawer-sheet-h), calc(100dvh - var(--topbar-h) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px) - 12px));
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transition:
+      height var(--drawer-sheet-dur) var(--drawer-sheet-ease),
+      max-height var(--drawer-sheet-dur) var(--drawer-sheet-ease),
+      opacity var(--drawer-sheet-dur) var(--drawer-sheet-ease),
+      visibility 0s linear 0s;
+  }
+
+  /* Keep handle + content in the layout for the full height/opacity close transition.
+     (Instant display:none / visibility:hidden made the sheet feel like it snapped shut.) */
+  #drawer .drawer-content{
+    padding:12px 12px 16px;
+    background:var(--mob-sheet-bg);
+    color:var(--mob-text);
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+
+  #drawer .drawer-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22)}
+
+  #drawer.expanded .drawer-content{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+
+  @supports not ((-webkit-backdrop-filter: blur(1px))){
+    #drawer .drawer-tabs{background:var(--mob-glass-solid)}
+    #drawer .drawer-panel{background:var(--mob-glass-solid)}
+    #drawer .drawer-content{background:var(--mob-sheet-bg)}
+  }
+
+  /* FotMob dark — controls inside the sheet (desktop sidebar unchanged) */
+  #drawer .drawer-content .lcard{
+    background:var(--mob-card-bg);
+    border:1px solid var(--mob-card-border);
+  }
+  #drawer .drawer-content .lcard-title{color:var(--mob-tab-muted)}
+  #drawer .drawer-content .lcard-sub{color:var(--mob-text-dim)}
+
+  #drawer .drawer-content .link-btn{color:var(--mob-link)}
+  #drawer .drawer-content .link-btn:hover{opacity:.85}
+
+  #drawer .drawer-content .danger-btn{
+    border-color:rgba(248,113,113,.42);
+    color:#f87171;
+  }
+  #drawer .drawer-content .danger-btn:hover{background:rgba(248,113,113,.1)}
+
+  #drawer .drawer-content .confirm-card{
+    background:rgba(248,113,113,.1);
+    border-color:rgba(248,113,113,.28);
+    color:rgba(255,255,255,.88);
+  }
+
+  #drawer .drawer-content .sm-btn{
+    background:#fff;
+    color:#0a0a0a;
+  }
+  #drawer .drawer-content .sm-btn.danger{background:var(--red);color:#fff}
+  #drawer .drawer-content .sm-btn.ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,.22);
+    color:var(--mob-text-dim);
+  }
+
+  #drawer .drawer-content .nd{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.06);
+  }
+  #drawer .drawer-content .nd:focus-within{
+    border-color:rgba(69,217,87,.45);
+    background:rgba(69,217,87,.08);
+  }
+  #drawer .drawer-content .nd-input{color:var(--mob-text)}
+  #drawer .drawer-content .nd-input::placeholder{color:var(--mob-tab-muted)}
+  #drawer .drawer-content .nd-del{color:var(--mob-tab-muted)}
+  #drawer .drawer-content .nd-del:hover{color:#f87171}
+
+  #drawer .drawer-content .icn{
+    background:#2c2c2e;
+    border-color:rgba(255,255,255,.14);
+    color:#fff;
+  }
+  #drawer .drawer-content .icn:hover{border-color:rgba(255,255,255,.35);background:#353538}
+  #drawer .drawer-content .icn.active{
+    border-color:var(--mob-tab-active);
+    background:var(--mob-tab-active);
+    color:#0a0a0a;
+  }
+
+  #drawer .drawer-content .theme-card{
+    background:#2c2c2e;
+    border-color:rgba(255,255,255,.12);
+  }
+  #drawer .drawer-content .theme-card:hover{border-color:rgba(255,255,255,.28)}
+  #drawer .drawer-content .theme-card.active{
+    border-color:var(--mob-tab-active);
+    background:rgba(69,217,87,.18);
+    box-shadow:inset 0 0 0 1px var(--mob-tab-active);
+  }
+  #drawer .drawer-content .theme-card.active .theme-name{color:#fff}
+  #drawer .drawer-content .theme-name{color:var(--mob-text-dim)}
+  #drawer .drawer-content #route-color-grid .theme-card.active{
+    border-color:#fff;
+    box-shadow:0 0 0 2px var(--mob-tab-active);
+    background:transparent;
+  }
+
+  #drawer .drawer-content .sl{color:var(--mob-tab-muted)}
+  #drawer .drawer-content .range-val{color:var(--mob-text-dim)}
+  #drawer .drawer-content input[type="range"]{
+    background:rgba(255,255,255,.12);
+  }
+  #drawer .drawer-content input[type="range"]::-webkit-slider-thumb{
+    background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.45);
+  }
+
+  #drawer .drawer-content .layer-row{border-color:rgba(255,255,255,.09)}
+  #drawer .drawer-content .layer-info{color:var(--mob-text)}
+
+  #drawer .drawer-content .upload-zone{
+    border-color:rgba(255,255,255,.14);
+    color:var(--mob-tab-muted);
+  }
+  #drawer .drawer-content .upload-zone:hover{border-color:rgba(255,255,255,.28);color:var(--mob-text)}
+
+  #drawer .drawer-content .tel-block{
+    background:var(--mob-card-bg);
+    border-color:var(--mob-card-border);
+  }
+  #drawer .drawer-content .tel-block-title{color:var(--mob-tab-muted)}
+  #drawer .drawer-content .tel-block-head .tel-del{
+    background:rgba(255,255,255,.08);
+    color:var(--mob-text-dim);
+  }
+  #drawer .drawer-content .tel-block-text{
+    background:#2c2c2e;
+    border-color:rgba(255,255,255,.12);
+    color:var(--mob-text);
+  }
+
+  #drawer .drawer-content .toggle .tog-track{background:#3a3a3c}
+  #drawer .drawer-content .toggle input:checked+.tog-track{background:var(--mob-tab-active)}
+
+  #drawer .drawer-content .draw-hero{
+    box-shadow:0 4px 24px rgba(0,0,0,.4);
+  }
+  #drawer .drawer-content .draw-toggle-btn.active{
+    background:var(--mob-tab-active);
+    color:#0a0a0a;
+    border-color:var(--mob-tab-active);
+  }
+  #drawer .drawer-content .draw-toggle-btn.active .draw-dot{
+    background:#0a0a0a;
+    box-shadow:0 0 0 3px rgba(69,217,87,.35);
+    animation:pulseMobDot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseMobDot{
+    0%,100%{box-shadow:0 0 0 3px rgba(69,217,87,.35)}
+    50%{box-shadow:0 0 0 8px rgba(69,217,87,.1)}
+  }
+
+  #drawer .drawer-content #logo-preview{
+    border-color:rgba(255,255,255,.12);
+  }
+  .dtab{
+    flex:1;
+    flex-direction:column;
+    gap:4px;
+    margin-bottom:0;
+    padding:6px 4px 8px;
+    min-height:0;
+    border:none;
+    border-radius:0;
+    border-bottom:none!important;
+    font-size:inherit;
+    font-weight:600;
+    letter-spacing:0;
+    color:var(--mob-tab-muted);
+    background:transparent;
+    transition:color .18s, transform .12s;
+  }
+
+  .dtab-icon{
+    width:24px;
+    height:24px;
+    flex-shrink:0;
+  }
+
+  .dtab-label{
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.01em;
+    line-height:1.15;
+  }
+
+  .dtab:active{transform:scale(.96)}
+
+  .dtab.active{
+    color:var(--mob-tab-active);
+    background:transparent;
+    box-shadow:none;
+  }
+
   .map-ctrls{
     right:12px;
     top:12px;
@@ -630,9 +998,41 @@ input[type="range"]::-webkit-slider-thumb{
   /* FAB — sit near the bottom edge of the screen */
   .fab{ bottom:24px; }
 
-  /* ── 2. Topbar: mobile layout ───────────────────────────────────── */
+  /* ── 2. Topbar: mobile layout — dark glass (FotMob shell) ─────── */
   /* Order: logo | undo/redo | [format grows] | export                 */
-  #topbar{ padding:0 8px; gap:4px; }
+  #topbar{
+    padding:0 8px;
+    gap:4px;
+    background:var(--mob-glass-bg);
+    -webkit-backdrop-filter:saturate(185%) blur(20px);
+    backdrop-filter:saturate(185%) blur(20px);
+    border-bottom:0.5px solid rgba(255,255,255,.06);
+    color:#fff;
+  }
+  .logo{color:#fff}
+
+  #topbar .sz-pick{
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.12);
+  }
+  #topbar .sz-label{color:var(--mob-tab-muted)}
+  #topbar .sz{color:rgba(255,255,255,.82)}
+  #topbar .sz:hover{color:#fff;background:rgba(255,255,255,.12)}
+  #topbar .sz.active{
+    background:var(--mob-tab-active);
+    color:#0a0a0a;
+  }
+  #topbar .sz.active .sz-icon{stroke:currentColor}
+
+  .topbar-export-btn{
+    background:#fff;
+    color:#0a0a0a;
+  }
+  .topbar-export-btn:hover{opacity:.88}
+
+  @supports not ((-webkit-backdrop-filter: blur(1px))){
+    #topbar{background:var(--mob-glass-solid)}
+  }
 
   .logo-text{ display:none }
   .logo{ gap:0; order:1 }
@@ -648,9 +1048,9 @@ input[type="range"]::-webkit-slider-thumb{
     order:2;
   }
   .tb-hist-btn{
-    background:rgba(30,30,30,0.82);
+    background:rgba(255,255,255,.1);
     color:#fff;
-    border:none;
+    border:1px solid rgba(255,255,255,.12);
     border-radius:8px;
     width:36px;
     height:36px;
@@ -697,14 +1097,12 @@ input[type="range"]::-webkit-slider-thumb{
     top:50%;left:50%;
     transform:translate(-50%,-50%);
     width:40px;height:5px;
-    background:var(--t3);border-radius:3px;
-    opacity:.35;
+    background:rgba(255,255,255,.24);
+    border-radius:3px;
+    opacity:1;
   }
 
-  /* Drawer tab bar: ensure 44px height */
-  .dtab{min-height:44px;font-size:13px}
-
-  /* ── 6b. Drawer inputs: comfortable tap targets ─────────────────── */
+  /* Drawer tab bar (FotMob layout — icon + label in rules above) */
   .nd-input,
   .drawer-content input[type="text"],
   .drawer-content select{

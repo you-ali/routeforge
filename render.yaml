@@ -4,6 +4,12 @@ services:
     env: static
     staticPublishPath: docs/
     headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: public, max-age=3600
       - path: /*
         name: Cache-Control
         value: public, max-age=3600

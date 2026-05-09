@@ -9,8 +9,7 @@ env/
 
 # Logs
 *.log
-backend/backend.log
-frontend/frontend.log
+docs/*.log
 
 # Environment
 .env

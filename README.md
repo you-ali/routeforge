@@ -1,21 +1,24 @@
 # RouteForge
 
-A minimal web tool for runners, cyclists, and run clubs to generate beautiful, print-ready route posters from any start and end address.
+Static web app: build print-ready route posters over OpenStreetMap (**Carto** tiles + **Nominatim** geocoding — no API keys). Hosted as static files only: **`docs/`** is the site root.
 
-## Local Development
+## Run locally
 
-### Backend (FastAPI)
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+cd docs
+python3 -m http.server 8080
 ```
 
-### Frontend (Vanilla HTML/CSS/JS)
+Open `http://localhost:8080`.
+
+## Icons / PWA
+
+Regenerate icons (optional):
+
 ```bash
-cd frontend
-python -m http.server 3000
+python3 scripts/generate_pwa_icons.py
 ```
-Open `http://localhost:3000` in your browser.
+
+## Deploy
+
+Configured for Render static publish: `staticPublishPath: docs/` (see `render.yaml`).

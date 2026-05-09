@@ -5,7 +5,7 @@
   white-space:nowrap;display:inline-block;line-height:1.05;letter-spacing:.02em;
   touch-action:none;
 }
-@media (max-width:599px){
+@media (max-width:899px){
   /* Larger effective tap target on phones (tiny fonts are hard to hit before drag kicks in) */
   .p-text{
     padding:12px 10px;

@@ -329,6 +329,28 @@ async function waitForLeafletTilesReady(mapEl) {
   }
 }
 
+/**
+ * After invalidateSize() / pan / zoom, Leaflet may still have *stale* tile <img> nodes that
+ * are already complete while the layer reloads. waitForLeafletTilesReady() can return too
+ * early on those. The tile layer's "load" event (surfaced as window._tilesReady) matches the
+ * current view — wait for that first, then refine with the DOM poll.
+ */
+async function waitForMainMapTilesSynced() {
+  const deadline = Date.now() + 15000;
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  while (Date.now() < deadline) {
+    if (window._tilesReady) return;
+    await new Promise(r => setTimeout(r, 40));
+  }
+}
+
+async function decodeTileImages(tileEls) {
+  await Promise.all(tileEls.map(t => {
+    if (typeof t.decode === 'function') return t.decode().catch(() => {});
+    return Promise.resolve();
+  }));
+}
+
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
 // Draw at logical poster size (frameW×frameH), then scale the bitmap up for hi-res output.
 // Mixing ctx.scale() with stroked paths + drawImage() skews line thickness vs icon size
@@ -371,6 +393,7 @@ async function compositeMapCanvas() {
   if (lMapPre) {
     try { lMapPre.invalidateSize(false); } catch (_) {}
   }
+  await waitForMainMapTilesSynced();
   await waitForLeafletTilesReady(mainMapEl);
 
   const allTiles = [...mainMapEl.querySelectorAll('img.leaflet-tile')].filter(t => t.src);
@@ -380,6 +403,7 @@ async function compositeMapCanvas() {
     setTimeout(res, 5000);
   })));
   const tileEls = allTiles.filter(t => t.complete && t.naturalWidth);
+  await decodeTileImages(tileEls);
   window._lastCompositeTileCount = tileEls.length;
 
   // Primary path: draw tile <img> elements directly.
