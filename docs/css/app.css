@@ -1574,34 +1574,48 @@ input[type="range"]::-webkit-slider-thumb{
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   Add to Home Screen / installed PWA (display-mode: standalone)
-   In-browser Safari uses different viewport + chrome; standalone is full-bleed.
-   Pin chrome to real safe areas and fix iOS 100% height with -webkit-fill-available.
+   Installed PWA — html.pwa-standalone set in index.html <head>
+   iOS home screen often ignores @media (display-mode: standalone); use
+   navigator.standalone + matchMedia. Fix top chrome to safe areas; on phones,
+   size #app with svh so layout matches the real screen (not in-browser URL bar).
    ════════════════════════════════════════════════════════════════════ */
-@media (display-mode: standalone) {
-  html{
-    height:100%;
-    height:-webkit-fill-available;
-  }
-  body{
-    min-height:100%;
-    min-height:-webkit-fill-available;
-  }
-  #topbar{
-    padding-top:env(safe-area-inset-top, 0px);
-    box-sizing:border-box;
-    height:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
-  }
-  #app{
+html.pwa-standalone{
+  height:100%;
+  height:-webkit-fill-available;
+}
+html.pwa-standalone body{
+  min-height:100%;
+  min-height:-webkit-fill-available;
+}
+html.pwa-standalone #topbar{
+  padding-top:env(safe-area-inset-top, 0px);
+  box-sizing:border-box;
+  height:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+}
+html.pwa-standalone #app{
+  top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+}
+html.pwa-standalone .topbar-history{
+  top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 12px);
+}
+@media(min-width:900px){
+  html.pwa-standalone #drawer{
     top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
   }
-  /* Only affects phone layout where undo/redo is viewport-fixed over the map */
-  .topbar-history{
-    top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 12px);
+}
+
+@media(max-width:899px){
+  /* Prefer svh in standalone — 100dvh/100vh still reflect “browser UI” layout on some iOS builds */
+  html.pwa-standalone #app{
+    bottom:auto;
+    height:calc(100vh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
+    height:calc(100dvh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
+    height:calc(100svh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px));
   }
-  @media(min-width:900px){
-    #drawer{
-      top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
-    }
+  html.pwa-standalone #drawer.expanded .drawer-panel{
+    max-height:min(
+      var(--drawer-sheet-h),
+      calc(100svh - var(--topbar-h) - env(safe-area-inset-top, 0px) - var(--drawer-peek-h) - env(safe-area-inset-bottom, 0px) - 12px)
+    );
   }
 }
