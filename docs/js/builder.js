@@ -23,8 +23,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       root.style.removeProperty('--rf-vvpx');
       return;
     }
-    const vvH = window.visualViewport?.height ?? window.innerHeight;
-    root.style.setProperty('--rf-vvpx', String(Math.round(vvH)));
+    try {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    } catch (_) {}
+    const layoutH = window.innerHeight;
+    root.style.setProperty('--rf-vvpx', String(Math.round(layoutH)));
     if (!window.matchMedia('(max-width: 899px)').matches) {
       app.style.removeProperty('height');
       return;
@@ -49,6 +54,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   requestAnimationFrame(() => {
     layoutPwaAppShell();
+    requestAnimationFrame(() => {
+      layoutPwaAppShell();
+      window.scalePoster?.();
+      window._leafletMap?.invalidateSize({ animate: false });
+    });
+  });
+
+  window.addEventListener('load', () => {
+    layoutPwaAppShell();
+    window.scalePoster?.();
+    window._leafletMap?.invalidateSize({ animate: false });
+  });
+  window.addEventListener('pageshow', (ev) => {
+    if (!ev.persisted) return;
     requestAnimationFrame(() => {
       layoutPwaAppShell();
       window.scalePoster?.();
