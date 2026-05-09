@@ -109,12 +109,19 @@ async function doExport() {
     return snap;
   });
 
+  const pngOpts = {
+    width: w,
+    height: h,
+    // Strip the CSS scale so dom-to-image sees the frame at natural 1080 px
+    style: { transform: 'none', transformOrigin: 'top left' },
+  };
+
   try {
-    const url = await domtoimage.toPng(frame, {
-      width: w, height: h,
-      // Strip the CSS scale so dom-to-image sees the frame at natural 1080 px
-      style: { transform: 'none', transformOrigin: 'top left' }
-    });
+    // First capture warms the pipeline (map <img> + dom-to-image); discard it.
+    // Second capture is what we save — fixes missing map on some WebKit builds.
+    await domtoimage.toPng(frame, pngOpts);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const url = await domtoimage.toPng(frame, pngOpts);
 
     let usedShare = false;
     if (_preferNativeGalleryShare()) {
