@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // CSS properties that dom-to-image may not resolve from cascaded stylesheet
 // rules or CSS custom properties (--sc-size, etc.).
-const INLINE_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight',
+const INLINE_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight', 'fontStyle', 'textDecoration',
                       'lineHeight', 'letterSpacing', 'textTransform', 'opacity'];
 
 /** Phone / PWA: prefer system share so user can Save to Photos; desktop keeps file download */

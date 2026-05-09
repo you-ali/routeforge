@@ -1,4 +1,23 @@
-const FONTS = ['Bebas Neue','Barlow Condensed','Montserrat','Oswald','DM Sans','Space Grotesk','Syne','IBM Plex Mono','Playfair Display','Cormorant Garamond'];
+const FONTS = [
+  'Bebas Neue', 'Barlow Condensed', 'Montserrat', 'Oswald', 'DM Sans', 'Space Grotesk', 'Syne',
+  'IBM Plex Mono', 'Playfair Display', 'Cormorant Garamond',
+  'Roboto', 'Poppins', 'Arial', 'Calibri', 'Leto',
+];
+
+/** UI name → real CSS font-family token (Leto maps to Google Fonts “Lato”). */
+function posterTextFontCssFamily(name) {
+  const css = name === 'Leto' ? 'Lato' : name;
+  return "'" + String(css).replace(/'/g, "\\'") + "',sans-serif";
+}
+
+const _DROPPED_POSTER_FONTS = { Quadro: 'Arial', Rom: 'Arial', 'BST Ritma': 'Arial' };
+
+function _migrateDroppedPosterFonts() {
+  for (const te of textEls) {
+    const rep = _DROPPED_POSTER_FONTS[te.font];
+    if (rep) te.font = rep;
+  }
+}
 
 function _readStatCopy() {
   return {
@@ -73,6 +92,7 @@ function _captureState() {
 
 function _restoreState(state) {
   textEls = JSON.parse(JSON.stringify(state.textEls));
+  _migrateDroppedPosterFonts();
   renderTextUI(); renderTextPoster();
 
   // Restore element positions
@@ -199,9 +219,9 @@ window.rescaleElements = function(oldH, newH) {
 
 // Four-level typographic hierarchy in the 1080×1350 poster coordinate space
 let textEls = [
-  { id: 2, text: 'ROUTEFORGE',     size: 148, color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald',           x: 60, y: 62  },
-  { id: 3, text: 'DATE',           size: 90,  color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald',           x: 62, y: 230 },
-  { id: 4, text: 'STARTING POINT', size: 68,  color: '#cccccc', bgColor: '#000000', removeBg: true, font: 'Barlow Condensed', x: 62, y: 340 },
+  { id: 2, text: 'RUNNING CLUB', size: 148, color: '#ffffff', bgColor: '#000000', removeBg: true, bold: false, italic: false, underline: false, font: 'Oswald', x: 60, y: 62 },
+  { id: 3, text: 'DATE', size: 90, color: '#ffffff', bgColor: '#000000', removeBg: true, bold: false, italic: false, underline: false, font: 'Oswald', x: 62, y: 230 },
+  { id: 4, text: 'STARTING POINT', size: 68, color: '#cccccc', bgColor: '#000000', removeBg: true, bold: false, italic: false, underline: false, font: 'Barlow Condensed', x: 62, y: 340 },
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -225,6 +245,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mod) return;
     if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoAction(); }
     if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redoAction(); }
+  });
+
+  let _editBarResizeT;
+  window.addEventListener('resize', () => {
+    clearTimeout(_editBarResizeT);
+    _editBarResizeT = setTimeout(() => {
+      const eb = document.getElementById('edit-bar');
+      if (eb?.classList.contains('visible') && _selectedEl) positionEditBar(_selectedEl);
+    }, 40);
   });
 });
 
@@ -376,8 +405,8 @@ async function decodeTileImages(tileEls) {
 }
 
 // dom-to-image resolves some CSS custom properties poorly; match export.js approach.
-const _COMPOSITE_INLINE_TEXT_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight',
-  'lineHeight', 'letterSpacing', 'textTransform', 'opacity'];
+const _COMPOSITE_INLINE_TEXT_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight', 'fontStyle',
+  'textDecoration', 'lineHeight', 'letterSpacing', 'textTransform', 'opacity'];
 
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
 // Draw at logical poster size (frameW×frameH), then scale the bitmap up for hi-res output.
@@ -825,7 +854,7 @@ function renderTextUI() {
 
   document.getElementById('btn-add-text').onclick = () => {
     pushUndo();
-    textEls.push({ id: Date.now(), text: 'NEW TEXT', size: 68, color: '#ffffff', bgColor: '#000000', removeBg: true, font: 'Oswald', x: 80, y: 300 });
+    textEls.push({ id: Date.now(), text: 'NEW TEXT', size: 68, color: '#ffffff', bgColor: '#000000', removeBg: true, bold: false, italic: false, underline: false, font: 'Oswald', x: 80, y: 300 });
     renderTextUI(); renderTextPoster();
   };
 }
@@ -835,7 +864,10 @@ function syncDom(el) {
   d.textContent = el.text;
   d.style.fontSize   = el.size + 'px';
   d.style.color      = el.color;
-  d.style.fontFamily = "'" + el.font + "',sans-serif";
+  d.style.fontWeight = el.bold === true ? '700' : '400';
+  d.style.fontStyle  = el.italic === true ? 'italic' : 'normal';
+  d.style.textDecoration = el.underline === true ? 'underline' : 'none';
+  d.style.fontFamily = posterTextFontCssFamily(el.font);
   d.style.background = el.removeBg ? 'transparent' : el.bgColor;
   d.style.padding    = el.removeBg ? '0' : '10px 20px';
   d.style.borderRadius = el.removeBg ? '0' : '6px';
@@ -1215,36 +1247,81 @@ function hideEditBar() {
 
 function positionEditBar(targetEl) {
   const bar = document.getElementById('edit-bar');
-  if (!bar) return;
-  const rect   = targetEl.getBoundingClientRect();
-  const barW   = bar.offsetWidth  || 300;
-  const barH   = bar.offsetHeight || 48;
+  if (!bar || !targetEl) return;
+
   const margin = 8;
-  // topbar height (CSS var --topbar-h = 52px)
-  const topbarH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 52;
-
-  // Center X, clamped so bar never bleeds off left or right edge
-  const rawCx  = rect.left + rect.width / 2;
-  const minCx  = barW / 2 + margin;
-  const maxCx  = window.innerWidth - barW / 2 - margin;
-  const cx     = Math.max(minCx, Math.min(maxCx, rawCx));
-
-  // Prefer above the element; fall back to below if not enough room
-  const spaceAbove = rect.top - topbarH - margin;
-  const below      = spaceAbove < barH + 10;
-
+  const topbarH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h'), 10) || 52;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const rect = targetEl.getBoundingClientRect();
   const arrow = bar.querySelector('.eb-arrow');
-  if (below) {
-    bar.style.left      = cx + 'px';
-    bar.style.top       = (rect.bottom + 10) + 'px';
-    bar.style.transform = 'translate(-50%, 0)';
-    arrow?.classList.add('flip');
-  } else {
-    bar.style.left      = cx + 'px';
-    bar.style.top       = (rect.top - 10) + 'px';
-    bar.style.transform = 'translate(-50%, -100%)';
-    arrow?.classList.remove('flip');
-  }
+
+  const applySide = (below) => {
+    const barW = bar.offsetWidth || Math.min(320, vw - 2 * margin);
+    const rawCx = rect.left + rect.width / 2;
+    const half = barW / 2;
+    const cx = Math.max(margin + half, Math.min(vw - margin - half, rawCx));
+    bar.style.left = `${cx}px`;
+    if (below) {
+      bar.style.top = `${rect.bottom + 10}px`;
+      bar.style.transform = 'translate(-50%, 0)';
+      arrow?.classList.add('flip');
+    } else {
+      bar.style.top = `${rect.top - 10}px`;
+      bar.style.transform = 'translate(-50%, -100%)';
+      arrow?.classList.remove('flip');
+    }
+  };
+
+  const clampIntoViewport = () => {
+    const br = bar.getBoundingClientRect();
+    let dx = 0;
+    let dy = 0;
+    if (br.left < margin) dx = margin - br.left;
+    if (br.right > vw - margin) dx = vw - margin - br.right;
+    if (br.top < topbarH + margin) dy = topbarH + margin - br.top;
+    if (br.bottom > vh - margin) dy = vh - margin - br.bottom;
+    if (dx !== 0 || dy !== 0) {
+      const L = parseFloat(bar.style.left) || vw / 2;
+      const T = parseFloat(bar.style.top) || 0;
+      bar.style.left = `${L + dx}px`;
+      bar.style.top = `${T + dy}px`;
+    }
+  };
+
+  /** Prefer above; use below if not enough room above. */
+  const chooseBelow = (barH) => {
+    const gap = 10;
+    const need = barH + gap;
+    const spaceAbove = rect.top - topbarH - margin;
+    const spaceBelow = vh - rect.bottom - margin;
+    if (spaceAbove >= need) return false;
+    if (spaceBelow >= need) return true;
+    return spaceBelow > spaceAbove;
+  };
+
+  const fitsVert = () => {
+    const b = bar.getBoundingClientRect();
+    return b.top >= topbarH + margin - 1 && b.bottom <= vh - margin + 1;
+  };
+
+  let hEst = bar.offsetHeight || 56;
+  applySide(chooseBelow(hEst));
+  clampIntoViewport();
+
+  requestAnimationFrame(() => {
+    hEst = bar.offsetHeight || hEst;
+    applySide(chooseBelow(hEst));
+    clampIntoViewport();
+    if (!fitsVert()) {
+      const below = arrow?.classList.contains('flip');
+      applySide(!below);
+      clampIntoViewport();
+    }
+    requestAnimationFrame(() => {
+      clampIntoViewport();
+    });
+  });
 }
 
 function showTextEditBar(el, teData) {
@@ -1261,15 +1338,20 @@ function showTextEditBar(el, teData) {
   colorIn.value = teData.color;
   document.getElementById('eb-color-dot').style.background = teData.color;
   document.getElementById('eb-bg-toggle').classList.toggle('active', !teData.removeBg);
+  document.getElementById('eb-bold')?.classList.toggle('active', teData.bold === true);
+  document.getElementById('eb-italic')?.classList.toggle('active', teData.italic === true);
+  document.getElementById('eb-underline')?.classList.toggle('active', teData.underline === true);
+  const bgToggleBtn = document.getElementById('eb-bg-toggle');
+  if (bgToggleBtn) bgToggleBtn.textContent = teData.removeBg ? 'Off' : 'On';
 
-  const bgColorWrap = document.getElementById('eb-bg-color-wrap');
+  const bgColorField = document.getElementById('eb-bg-color-field');
   const bgColorDot  = document.getElementById('eb-bg-color-dot');
   const bgColorIn   = document.getElementById('eb-bg-color');
-  if (bgColorWrap && bgColorIn) {
+  if (bgColorField && bgColorIn) {
     const bgVal = teData.bgColor || '#000000';
     bgColorIn.value = bgVal;
     if (bgColorDot) bgColorDot.style.background = bgVal;
-    bgColorWrap.style.display = teData.removeBg ? 'none' : 'flex';
+    bgColorField.style.display = teData.removeBg ? 'none' : 'flex';
   }
 
   bar.classList.add('visible');
@@ -1288,6 +1370,24 @@ function showTextEditBar(el, teData) {
   }
 
   rewire('eb-font', e => { pushUndo(); teData.font = e.target.value; syncDom(teData); updateTextListRow(teData); });
+  rewire('eb-bold', () => {
+    pushUndo();
+    teData.bold = !teData.bold;
+    document.getElementById('eb-bold')?.classList.toggle('active', teData.bold === true);
+    syncDom(teData);
+  });
+  rewire('eb-italic', () => {
+    pushUndo();
+    teData.italic = !teData.italic;
+    document.getElementById('eb-italic')?.classList.toggle('active', teData.italic === true);
+    syncDom(teData);
+  });
+  rewire('eb-underline', () => {
+    pushUndo();
+    teData.underline = !teData.underline;
+    document.getElementById('eb-underline')?.classList.toggle('active', teData.underline === true);
+    syncDom(teData);
+  });
   rewire('eb-sz-m', () => {
     pushUndo();
     teData.size = Math.max(8, teData.size - 4);
@@ -1318,8 +1418,12 @@ function showTextEditBar(el, teData) {
   rewire('eb-bg-toggle', () => {
     pushUndo();
     teData.removeBg = !teData.removeBg;
-    document.getElementById('eb-bg-toggle').classList.toggle('active', !teData.removeBg);
-    document.getElementById('eb-bg-color-wrap').style.display = teData.removeBg ? 'none' : 'flex';
+    const tgl = document.getElementById('eb-bg-toggle');
+    if (tgl) {
+      tgl.classList.toggle('active', !teData.removeBg);
+      tgl.textContent = teData.removeBg ? 'Off' : 'On';
+    }
+    document.getElementById('eb-bg-color-field').style.display = teData.removeBg ? 'none' : 'flex';
     syncDom(teData);
   });
   const newBgColorIn = rewire('eb-bg-color', e => {

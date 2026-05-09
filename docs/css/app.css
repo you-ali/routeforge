@@ -267,17 +267,184 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
   z-index:800;
   display:none;
   align-items:center;
-  background:#111;
-  border-radius:12px;
-  padding:4px 6px;
+  justify-content:center;
+  box-sizing:border-box;
+  background:#141418;
+  border-radius:14px;
+  padding:8px 12px 10px;
   gap:3px;
-  box-shadow:0 6px 28px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.25);
+  box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06);
   transform:translateX(-50%);
   pointer-events:auto;
-  white-space:nowrap;
+  white-space:normal;
+  width:min(max-content, calc(100vw - 16px));
+  max-width:calc(100vw - 16px);
 }
 #edit-bar.visible{display:flex!important}
 .eb-bar{display:flex;align-items:center;gap:3px}
+#eb-text-bar{
+  flex-direction:column;
+  align-items:stretch;
+  align-self:stretch;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  gap:10px;
+}
+#eb-text-bar .eb-text-row{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#eb-text-bar .eb-text-row-2{
+  align-items:flex-end;
+  padding-top:2px;
+  border-top:1px solid rgba(255,255,255,.08);
+  margin:0 -2px;
+  padding-left:2px;
+  padding-right:2px;
+}
+@media (max-width:560px){
+  #eb-text-bar .eb-text-row-2{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  #eb-text-bar .eb-text-row-2 .eb-text-vrule{display:none}
+  #eb-text-bar .eb-text-row-2 .eb-text-group{width:100%;max-width:100%}
+}
+@media (max-width:420px){
+  #eb-text-bar .eb-text-row-1{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  #eb-text-bar .eb-text-row-1 > .eb-text-vrule{display:none}
+  #eb-text-bar .eb-text-row-1 .eb-text-group--font{
+    flex:none;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+  }
+}
+#eb-text-bar .eb-text-group{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:5px;
+  min-width:0;
+}
+#eb-text-bar .eb-text-group--font{
+  flex:1;
+  min-width:140px;
+}
+#eb-text-bar .eb-text-group-label{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.38);
+  line-height:1;
+  user-select:none;
+}
+#eb-text-bar .eb-text-group-tools{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex-wrap:nowrap;
+}
+#eb-text-bar .eb-text-group--size{
+  flex:0 0 auto;
+}
+#eb-text-bar .eb-text-row-del{
+  display:flex;
+  justify-content:flex-end;
+  width:100%;
+  padding-top:8px;
+  margin-top:2px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+#eb-text-bar .eb-text-del-btn{
+  width:auto;
+  min-height:34px;
+  padding:0 16px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.02em;
+  border-radius:8px;
+  cursor:pointer;
+  border:1px solid rgba(248,113,113,.4);
+  background:rgba(248,113,113,.12);
+  color:rgba(254,202,202,.95);
+  transition:background .12s,border-color .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+#eb-text-bar .eb-text-del-btn:hover{
+  background:rgba(248,113,113,.2);
+  border-color:rgba(248,113,113,.55);
+}
+#eb-text-bar .eb-text-del-btn:active{
+  background:rgba(248,113,113,.28);
+}
+#eb-text-bar .eb-font-select{
+  width:100%;
+  min-width:0;
+  max-width:none;
+  font-size:12px;
+  padding:6px 8px;
+  margin:0;
+  border-radius:8px;
+  background:rgba(255,255,255,.06);
+}
+#eb-text-vrule{
+  width:1px;
+  align-self:stretch;
+  min-height:36px;
+  margin:4px 0;
+  background:rgba(255,255,255,.1);
+  flex-shrink:0;
+}
+.eb-text-bg-tools{
+  align-items:center;
+}
+.eb-color-field{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.eb-color-field-lbl{
+  font-size:10px;
+  font-weight:600;
+  color:rgba(255,255,255,.52);
+  white-space:nowrap;
+  letter-spacing:.02em;
+}
+.eb-color-wrap--field{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.2);
+}
+.eb-color-wrap--field .eb-color-dot{
+  width:22px;
+  height:22px;
+  border-width:1.5px;
+}
+.eb-style-chip{
+  padding:6px 12px;
+  font-size:11px;
+  font-weight:600;
+  border-radius:8px;
+}
+.eb-style-chip--italic{font-style:italic;font-family:Georgia,'Times New Roman',serif}
+.eb-style-chip--underline{text-decoration:underline;text-underline-offset:2px}
+.eb-chip-toggle{
+  min-width:44px;
+  text-align:center;
+  padding:6px 12px;
+  font-size:11px;
+  font-weight:600;
+}
 .eb-btn{
   width:32px;height:32px;display:flex;align-items:center;justify-content:center;
   background:0;border:none;color:rgba(255,255,255,.85);font-size:14px;font-weight:600;
@@ -320,7 +487,48 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
 }
 .eb-chip:hover{background:rgba(255,255,255,.2);color:rgba(255,255,255,.9)}
 .eb-chip.active{
-  background:rgba(255,255,255,.9);color:#111;border-color:transparent;
+  background:rgba(255,255,255,.94);color:#121214;border-color:transparent;
+}
+#eb-text-bar .eb-chip.eb-style-chip,
+#eb-text-bar .eb-chip.eb-chip-toggle{
+  border-radius:8px;
+}
+#eb-stats-bar.eb-ov-toolbar,
+#eb-legend-bar.eb-ov-toolbar,
+.eb-ov-toolbar{
+  flex-wrap:wrap;
+  align-content:flex-start;
+  align-items:flex-end;
+  max-width:100%;
+  gap:12px 14px;
+  justify-content:flex-start;
+}
+.eb-ov-section{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:5px;
+  flex:0 0 auto;
+  min-width:0;
+}
+.eb-ov-section-label{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.38);
+  line-height:1;
+  user-select:none;
+}
+.eb-ov-group{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:4px;
+  flex:0 0 auto;
+}
+.eb-ov-stepper{
+  gap:2px;
 }
 .eb-arrow{
   position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
@@ -329,7 +537,7 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
 .eb-arrow::before{
   content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
   border-left:7px solid transparent;border-right:7px solid transparent;
-  border-top:7px solid #111;
+  border-top:7px solid #141418;
 }
 
 /* Selected element highlight (not text overlays — they use no frame; see poster.css) */
@@ -991,7 +1199,7 @@ input[type="range"]::-webkit-slider-thumb{
 
 /* ─── Edit-bar arrow — flipped variant (bar positioned below element) ── */
 .eb-arrow.flip{bottom:auto;top:-6px}
-.eb-arrow.flip::before{border-top:none;border-bottom:7px solid #111}
+.eb-arrow.flip::before{border-top:none;border-bottom:7px solid #141418}
 
 /* ════════════════════════════════════════════════════════════════════
    TOUCH / COMPACT  (≤ 899px) — same UI as phone; no separate tablet drawer
@@ -1483,11 +1691,29 @@ input[type="range"]::-webkit-slider-thumb{
   }
   #btn-export{ padding:7px 10px; font-size:12px; gap:4px }
 
-  /* ── 4. Edit bar: constrain width & allow horizontal scroll ─────── */
+  /* ── 4. Edit bar: fit viewport (wrap + JS clamp; no horizontal scroll) ─ */
   #edit-bar{
-    max-width:calc(100vw - 16px);
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
+    max-width:calc(100vw - 12px);
+    width:min(max-content, calc(100vw - 12px));
+    overflow:visible;
+    padding:8px 10px;
+  }
+  .eb-text-style-tools .eb-style-chip{
+    padding:5px 9px;
+    font-size:10px;
+  }
+  .eb-chip-toggle{
+    padding:5px 10px;
+    font-size:10px;
+    min-width:40px;
+  }
+  .eb-color-field-lbl{
+    font-size:9px;
+  }
+  #eb-text-bar .eb-text-del-btn{
+    min-height:36px;
+    padding:0 18px;
+    font-size:12px;
   }
 
   /* ── 5. Edit-bar buttons: bump to 36px tap target ───────────────── */

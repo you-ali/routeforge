@@ -30,8 +30,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-  <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat&family=Oswald&family=DM+Sans&family=Space+Grotesk&family=Syne&family=Barlow+Condensed&family=IBM+Plex+Mono&family=Playfair+Display&family=Cormorant+Garamond&display=swap" crossorigin>
-  <link rel="stylesheet" href="./css/app.css?v=37">
+  <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat&family=Oswald&family=DM+Sans&family=Space+Grotesk&family=Syne&family=Barlow+Condensed&family=IBM+Plex+Mono&family=Playfair+Display&family=Cormorant+Garamond&family=Roboto&family=Poppins&family=Lato&display=swap" crossorigin>
+  <link rel="stylesheet" href="./css/app.css?v=43">
   <link rel="stylesheet" href="./css/themes.css?v=4">
   <link rel="stylesheet" href="./css/poster.css?v=9">
 </head>
@@ -206,70 +206,132 @@
   <!-- ─── Inline Edit Bar (appears above clicked poster element) ─── -->
   <div id="edit-bar">
     <!-- Text element bar -->
-    <div id="eb-text-bar" class="eb-bar">
-      <select id="eb-font" class="eb-select" title="Font"></select>
-      <div class="eb-sep"></div>
-      <button class="eb-btn" id="eb-sz-m" title="Smaller">−</button>
-      <span class="eb-sz-val" id="eb-sz-val">50</span>
-      <button class="eb-btn" id="eb-sz-p" title="Larger">+</button>
-      <div class="eb-sep"></div>
-      <label class="eb-color-wrap" title="Text color">
-        <input type="color" id="eb-color" value="#ffffff">
-        <span class="eb-color-dot" id="eb-color-dot" style="background:#ffffff"></span>
-      </label>
-      <button class="eb-chip" id="eb-bg-toggle" title="Toggle background">BG</button>
-      <label class="eb-color-wrap" id="eb-bg-color-wrap" title="Background color" style="display:none">
-        <input type="color" id="eb-bg-color" value="#000000">
-        <span class="eb-color-dot" id="eb-bg-color-dot" style="background:#000000"></span>
-      </label>
-      <div class="eb-sep"></div>
-      <button class="eb-btn eb-del" id="eb-del" title="Delete">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+    <div id="eb-text-bar" class="eb-bar eb-text-bar">
+      <div class="eb-text-row eb-text-row-1">
+        <div class="eb-text-group eb-text-group--font">
+          <span class="eb-text-group-label">Font</span>
+          <select id="eb-font" class="eb-select eb-font-select" title="Font"></select>
+        </div>
+        <div class="eb-text-vrule" aria-hidden="true"></div>
+        <div class="eb-text-group eb-text-group--size">
+          <span class="eb-text-group-label">Size</span>
+          <div class="eb-text-group-tools">
+            <button type="button" class="eb-btn" id="eb-sz-m" title="Smaller">−</button>
+            <span class="eb-sz-val" id="eb-sz-val">50</span>
+            <button type="button" class="eb-btn" id="eb-sz-p" title="Larger">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="eb-text-row eb-text-row-2">
+        <div class="eb-text-group">
+          <span class="eb-text-group-label">Style</span>
+          <div class="eb-text-group-tools eb-text-style-tools">
+            <button type="button" class="eb-chip eb-style-chip" id="eb-bold" title="Bold">Bold</button>
+            <button type="button" class="eb-chip eb-style-chip eb-style-chip--italic" id="eb-italic" title="Italic">Italic</button>
+            <button type="button" class="eb-chip eb-style-chip eb-style-chip--underline" id="eb-underline" title="Underline">Underline</button>
+          </div>
+        </div>
+        <div class="eb-text-vrule" aria-hidden="true"></div>
+        <div class="eb-text-group">
+          <span class="eb-text-group-label">Background</span>
+          <div class="eb-text-group-tools eb-text-bg-tools">
+            <button type="button" class="eb-chip eb-chip-toggle" id="eb-bg-toggle" title="Background fill">Off</button>
+            <div class="eb-color-field" id="eb-bg-color-field" style="display:none">
+              <span class="eb-color-field-lbl">Fill color</span>
+              <label class="eb-color-wrap eb-color-wrap--field" title="Background fill color">
+                <input type="color" id="eb-bg-color" value="#000000">
+                <span class="eb-color-dot" id="eb-bg-color-dot" style="background:#000000"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="eb-text-vrule" aria-hidden="true"></div>
+        <div class="eb-text-group">
+          <span class="eb-text-group-label">Text</span>
+          <div class="eb-text-group-tools">
+            <div class="eb-color-field">
+              <span class="eb-color-field-lbl">Text color</span>
+              <label class="eb-color-wrap eb-color-wrap--field" title="Text color">
+                <input type="color" id="eb-color" value="#ffffff">
+                <span class="eb-color-dot" id="eb-color-dot" style="background:#ffffff"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="eb-text-row eb-text-row-del">
+        <button type="button" class="eb-text-del-btn" id="eb-del" title="Remove this text box from the poster">Delete</button>
+      </div>
     </div>
 
     <!-- Stats card bar -->
-    <div id="eb-stats-bar" class="eb-bar" style="display:none">
-      <button class="eb-chip active" id="eb-s-dist">Dist</button>
-      <button class="eb-chip active" id="eb-s-time">Time</button>
-      <button class="eb-chip" id="eb-s-surf">Surf</button>
-      <div class="eb-sep"></div>
-      <button class="eb-btn" id="eb-ss-m">−</button>
-      <span class="eb-sz-val" id="eb-ss-val">50</span>
-      <button class="eb-btn" id="eb-ss-p">+</button>
-      <div class="eb-sep"></div>
-      <label class="eb-color-wrap" title="Font color">
-        <input type="color" id="eb-s-color" value="#ffffff">
-        <span class="eb-color-dot" id="eb-s-color-dot" style="background:#ffffff"></span>
-      </label>
-      <button class="eb-chip" id="eb-s-bg-toggle" title="Toggle background">BG</button>
-      <label class="eb-color-wrap" id="eb-s-bg-color-wrap" title="Background color" style="display:none">
-        <input type="color" id="eb-s-bg-color" value="#000000">
-        <span class="eb-color-dot" id="eb-s-bg-color-dot" style="background:#000000"></span>
-      </label>
-      <button class="eb-chip" id="eb-s-border" title="Toggle border">Border</button>
+    <div id="eb-stats-bar" class="eb-bar eb-ov-toolbar" style="display:none">
+      <div class="eb-ov-section">
+        <span class="eb-ov-section-label">Visibility</span>
+        <div class="eb-ov-group">
+          <button class="eb-chip active" id="eb-s-dist">Dist</button>
+          <button class="eb-chip active" id="eb-s-time">Time</button>
+          <button class="eb-chip" id="eb-s-surf">Surf</button>
+        </div>
+      </div>
+      <div class="eb-ov-section">
+        <span class="eb-ov-section-label">Size</span>
+        <div class="eb-ov-group eb-ov-stepper">
+          <button type="button" class="eb-btn" id="eb-ss-m">−</button>
+          <span class="eb-sz-val" id="eb-ss-val">50</span>
+          <button type="button" class="eb-btn" id="eb-ss-p">+</button>
+        </div>
+      </div>
+      <div class="eb-ov-section">
+        <span class="eb-ov-section-label">Style</span>
+        <div class="eb-ov-group">
+          <label class="eb-color-wrap" title="Font color">
+            <input type="color" id="eb-s-color" value="#ffffff">
+            <span class="eb-color-dot" id="eb-s-color-dot" style="background:#ffffff"></span>
+          </label>
+          <button class="eb-chip" id="eb-s-bg-toggle" title="Toggle background">BG</button>
+          <label class="eb-color-wrap" id="eb-s-bg-color-wrap" title="Background color" style="display:none">
+            <input type="color" id="eb-s-bg-color" value="#000000">
+            <span class="eb-color-dot" id="eb-s-bg-color-dot" style="background:#000000"></span>
+          </label>
+          <button class="eb-chip" id="eb-s-border" title="Toggle border">Border</button>
+        </div>
+      </div>
     </div>
 
     <!-- Legend bar -->
-    <div id="eb-legend-bar" class="eb-bar" style="display:none">
-      <button class="eb-chip active" id="eb-l-start">Start</button>
-      <button class="eb-chip active" id="eb-l-finish">Finish</button>
-      <button class="eb-chip" id="eb-l-wp">Waypoint</button>
-      <div class="eb-sep"></div>
-      <button class="eb-btn" id="eb-ls-m">−</button>
-      <span class="eb-sz-val" id="eb-ls-val">13</span>
-      <button class="eb-btn" id="eb-ls-p">+</button>
-      <div class="eb-sep"></div>
-      <label class="eb-color-wrap" title="Label color">
-        <input type="color" id="eb-l-color" value="#ffffff">
-        <span class="eb-color-dot" id="eb-l-color-dot" style="background:#ffffff"></span>
-      </label>
-      <button class="eb-chip" id="eb-l-bg-toggle" title="Toggle background">BG</button>
-      <label class="eb-color-wrap" id="eb-l-bg-color-wrap" title="Background color" style="display:none">
-        <input type="color" id="eb-l-bg-color" value="#000000">
-        <span class="eb-color-dot" id="eb-l-bg-color-dot" style="background:#000000"></span>
-      </label>
-      <button class="eb-chip" id="eb-l-border" title="Toggle border">Border</button>
+    <div id="eb-legend-bar" class="eb-bar eb-ov-toolbar" style="display:none">
+      <div class="eb-ov-section">
+        <span class="eb-ov-section-label">Visibility</span>
+        <div class="eb-ov-group">
+          <button class="eb-chip active" id="eb-l-start">Start</button>
+          <button class="eb-chip active" id="eb-l-finish">Finish</button>
+          <button class="eb-chip" id="eb-l-wp">Waypoint</button>
+        </div>
+      </div>
+      <div class="eb-ov-section">
+        <span class="eb-ov-section-label">Size</span>
+        <div class="eb-ov-group eb-ov-stepper">
+          <button type="button" class="eb-btn" id="eb-ls-m">−</button>
+          <span class="eb-sz-val" id="eb-ls-val">13</span>
+          <button type="button" class="eb-btn" id="eb-ls-p">+</button>
+        </div>
+      </div>
+      <div class="eb-ov-section">
+        <span class="eb-ov-section-label">Style</span>
+        <div class="eb-ov-group">
+          <label class="eb-color-wrap" title="Label color">
+            <input type="color" id="eb-l-color" value="#ffffff">
+            <span class="eb-color-dot" id="eb-l-color-dot" style="background:#ffffff"></span>
+          </label>
+          <button class="eb-chip" id="eb-l-bg-toggle" title="Toggle background">BG</button>
+          <label class="eb-color-wrap" id="eb-l-bg-color-wrap" title="Background color" style="display:none">
+            <input type="color" id="eb-l-bg-color" value="#000000">
+            <span class="eb-color-dot" id="eb-l-bg-color-dot" style="background:#000000"></span>
+          </label>
+          <button class="eb-chip" id="eb-l-border" title="Toggle border">Border</button>
+        </div>
+      </div>
     </div>
 
     <div class="eb-arrow"></div>
@@ -544,9 +606,9 @@
 <script src="./js/themes.js?v=6"></script>
 <script src="./js/map.js?v=7"></script>
 <script src="./js/builder.js?v=13"></script>
-<script src="./js/poster.js?v=18"></script>
+<script src="./js/poster.js?v=23"></script>
 <script src="./js/projects.js?v=8"></script>
-<script src="./js/export.js?v=8"></script>
+<script src="./js/export.js?v=9"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

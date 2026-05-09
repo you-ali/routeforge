@@ -1,5 +1,5 @@
 /* RouteForge — minimal offline shell; map tiles still need network */
-const CACHE = 'routeforge-v23';
+const CACHE = 'routeforge-v31';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
