@@ -107,6 +107,13 @@ function initMap(id) {
   });
 }
 
+window.setRouteWidth = function (w) {
+  routeWidth = parseFloat(w) || 7;
+  const s = document.getElementById('route-width-slider');
+  if (s) s.value = String(routeWidth);
+  if (window.currentRouteData) drawRoute(window.currentRouteData.geojson);
+};
+
 function applyDrawMode() {
   const on     = window.isDrawingMode;
   const btn    = document.getElementById('btn-toggle-draw');

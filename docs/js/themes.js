@@ -102,3 +102,34 @@ window.getCurrentTheme = () => ({
 });
 window.getRouteColor = () => currentRoutePreset.routeColor;
 window.getGlowColor = () => currentRoutePreset.glowColor;
+
+function _syncThemeGridActive() {
+  const rg = document.getElementById('route-color-grid');
+  if (rg) {
+    ROUTE_COLORS.forEach((rc, i) => {
+      const c = rg.children[i];
+      if (c) c.classList.toggle('active', rc.id === currentRoutePreset.id);
+    });
+  }
+  const mg = document.getElementById('map-style-grid');
+  if (mg) {
+    MAP_STYLES.forEach((ms, i) => {
+      const c = mg.children[i];
+      if (c) c.classList.toggle('active', ms.id === currentMapStyle.id);
+    });
+  }
+}
+
+window.getThemeIds = () => ({
+  route: currentRoutePreset.id,
+  map: currentMapStyle.id,
+});
+
+/** Re-apply route + map themes by id (updates grid selection). */
+window.applyThemeIds = function (routeId, mapId) {
+  const rc = ROUTE_COLORS.find((r) => r.id === routeId) || ROUTE_COLORS[0];
+  const ms = MAP_STYLES.find((m) => m.id === mapId) || MAP_STYLES[0];
+  applyRouteColor(rc);
+  applyMapStyle(ms);
+  _syncThemeGridActive();
+};

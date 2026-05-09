@@ -1,5 +1,5 @@
 /* RouteForge — minimal offline shell; map tiles still need network */
-const CACHE = 'routeforge-v2';
+const CACHE = 'routeforge-v13';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -16,6 +16,7 @@ self.addEventListener('install', (event) => {
         './js/map.js',
         './js/builder.js',
         './js/poster.js',
+        './js/projects.js',
         './js/export.js',
         './icons/icon-192.png',
         './icons/icon-512.png',

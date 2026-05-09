@@ -80,3 +80,5 @@ async function doExport() {
     img.style.display = 'none';
   }
 }
+
+window.doExport = doExport;

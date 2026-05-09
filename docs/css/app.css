@@ -53,8 +53,38 @@ input,select{font-family:inherit}
 /* Undo/redo — pushed to right on desktop via margin-left:auto on export */
 .topbar-history{display:flex;gap:3px;align-items:center;flex-shrink:0}
 
-/* Export always on far right */
-#btn-export{margin-left:auto;flex-shrink:0}
+/* Trailing actions (Save + Export) — grouped on the right */
+.topbar-trailing{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-left:auto;
+  flex-shrink:0;
+}
+
+/* Save to Library — secondary control next to Export */
+.topbar-save-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+  color:var(--t1);
+  border:1.5px solid var(--border2);
+  padding:8px 14px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:700;
+  flex-shrink:0;
+  letter-spacing:-.01em;
+  transition:background .15s,border-color .15s,opacity .15s;
+  -webkit-tap-highlight-color:transparent;
+  white-space:nowrap;
+}
+.topbar-save-btn:hover{background:var(--bg);border-color:var(--t1);color:var(--t1)}
+.topbar-save-btn:active{opacity:.85}
+
+/* Export always at far right of the trailing group */
+#btn-export{margin-left:0;flex-shrink:0}
 
 /* ── Format / aspect-ratio picker ────────────────────────────────────── */
 .sz-pick{
@@ -296,8 +326,11 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
   border-top:7px solid #111;
 }
 
-/* Selected element highlight */
-.poster-el-selected{outline:2px solid rgba(255,255,255,.6)!important;outline-offset:3px!important}
+/* Selected element highlight (not text overlays — they use no frame; see poster.css) */
+.poster-el-selected:not(.p-text){
+  outline:2px solid rgba(255,255,255,.6)!important;
+  outline-offset:3px!important;
+}
 
 /* Poster element border frame (toggled via edit bar) */
 .has-border{border:2px solid rgba(255,255,255,.8)!important;border-radius:4px}
@@ -468,6 +501,288 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
 }
 .lcard-sub{font-size:12px;color:var(--t3);line-height:1.5}
 
+/* Library tab — poster grid, detail preview, unsaved dialog */
+.library-pane{position:relative}
+.library-main{display:flex;flex-direction:column;gap:10px}
+.library-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.library-empty{font-size:12px;color:var(--t3);margin:4px 0;line-height:1.5}
+.library-empty strong{color:var(--t2);font-weight:700}
+.library-card{
+  display:flex;flex-direction:column;align-items:stretch;
+  gap:6px;padding:0;margin:0;border:none;background:var(--panel);
+  border:1px solid var(--border2);border-radius:var(--r2);
+  cursor:pointer;text-align:left;font:inherit;
+  -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+  transition:border-color .15s,box-shadow .15s;
+}
+.library-card:hover{border-color:var(--t3);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.library-card:focus-visible{outline:2px solid var(--t1);outline-offset:2px}
+.library-card-img-wrap{
+  aspect-ratio:4/5;
+  background:#1a1a1c;
+  display:block;position:relative;
+  overflow:hidden;
+}
+.library-card-img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+}
+.library-card-name{
+  font-size:12px;font-weight:700;color:var(--t1);
+  padding:0 10px;
+  line-height:1.25;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.library-card-date{
+  font-size:10px;color:var(--t3);
+  padding:0 10px 10px;
+}
+/* Library — fullscreen preview + glass actions */
+.library-fullscreen[hidden]{display:none!important}
+.library-fullscreen:not([hidden]){
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  inset:0;
+  z-index:2500;
+  pointer-events:none;
+}
+.library-fullscreen .library-fs-backdrop{
+  position:absolute;
+  inset:0;
+  background:#000;
+  pointer-events:auto;
+}
+.library-fs-close{
+  position:absolute;
+  top:calc(12px + env(safe-area-inset-top, 0px));
+  right:calc(12px + env(safe-area-inset-right, 0px));
+  z-index:3;
+  width:44px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border:none;
+  border-radius:50%;
+  cursor:pointer;
+  color:#fff;
+  background:rgba(30,30,32,.72);
+  -webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 4px 24px rgba(0,0,0,.35);
+  pointer-events:auto;
+  -webkit-tap-highlight-color:transparent;
+}
+.library-fs-close:hover{background:rgba(50,50,52,.82)}
+.library-fs-close:active{opacity:.88}
+.library-fs-stage{
+  position:relative;
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:calc(56px + env(safe-area-inset-top, 0px)) 12px 8px;
+  pointer-events:none;
+}
+.library-fs-img{
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  object-position:center;
+  pointer-events:none;
+  display:block;
+}
+.library-fs-glass{
+  flex-shrink:0;
+  padding:0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  pointer-events:none;
+}
+.library-fs-glass-inner{
+  max-width:480px;
+  margin:0 auto;
+  padding:14px 16px 16px;
+  border-radius:16px 16px 0 0;
+  background:rgba(22,22,24,.78);
+  -webkit-backdrop-filter:saturate(160%) blur(22px);
+  backdrop-filter:saturate(160%) blur(22px);
+  border:1px solid rgba(255,255,255,.12);
+  border-bottom:none;
+  box-shadow:0 -8px 40px rgba(0,0,0,.35);
+  pointer-events:auto;
+}
+.library-fs-title{
+  font-size:15px;
+  font-weight:700;
+  color:#fff;
+  line-height:1.3;
+  margin:0 0 4px;
+}
+.library-fs-meta{
+  font-size:12px;
+  color:rgba(235,235,245,.55);
+  margin:0 0 14px;
+}
+.library-fs-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+.library-fs-actions .sm-btn{flex:1;min-width:0}
+.library-fs-glass-inner .sm-btn.ghost{
+  color:rgba(255,255,255,.92);
+  border-color:rgba(255,255,255,.32);
+}
+.library-fs-glass-inner .sm-btn.ghost.danger-outline{
+  border-color:rgba(248,113,113,.55);
+  color:#fca5a5;
+}
+
+.library-unsaved-modal[hidden]{display:none!important}
+.library-unsaved-modal:not([hidden]){
+  display:block;
+  position:fixed;
+  inset:0;
+  z-index:2700;
+  pointer-events:none;
+}
+.library-unsaved-modal .library-unsaved-backdrop{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,.5);
+  pointer-events:auto;
+}
+.library-unsaved-card{
+  position:absolute;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  width:min(calc(100vw - 32px),360px);
+  padding:20px;
+  border-radius:var(--r2);
+  background:var(--panel);
+  border:1px solid var(--border2);
+  box-shadow:0 16px 48px rgba(0,0,0,.25);
+  pointer-events:auto;
+}
+.library-unsaved-title{
+  margin:0 0 8px;
+  font-size:15px;font-weight:700;color:var(--t1);line-height:1.35;
+}
+.library-unsaved-sub{
+  margin:0 0 16px;
+  font-size:13px;color:var(--t3);line-height:1.45;
+}
+.library-unsaved-buttons{
+  display:flex;
+  flex-direction:row;
+  gap:8px;
+  align-items:stretch;
+}
+.library-unsaved-buttons .sm-btn{
+  flex:1;
+  min-width:0;
+}
+
+/* Save to Library — name dialog (topbar Save) */
+.save-library-modal[hidden]{display:none!important}
+.save-library-modal:not([hidden]){
+  display:block;
+  position:fixed;
+  inset:0;
+  z-index:2700;
+  pointer-events:none;
+}
+.save-library-modal .save-library-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  pointer-events:auto;
+}
+.save-library-card{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(calc(100vw - 32px),360px);
+  padding:20px;
+  border-radius:var(--r2);
+  background:var(--panel);
+  border:1px solid var(--border2);
+  box-shadow:0 16px 48px rgba(0,0,0,.25);
+  pointer-events:auto;
+}
+.save-library-title{
+  margin:0 0 14px;
+  font-size:15px;
+  font-weight:700;
+  color:var(--t1);
+  line-height:1.35;
+}
+.save-library-label{
+  display:block;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--t2);
+  margin-bottom:6px;
+}
+.save-library-input{
+  width:100%;
+  box-sizing:border-box;
+  margin:0 0 16px;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--border2);
+  font-size:15px;
+  background:var(--panel);
+  color:var(--t1);
+  font-family:inherit;
+}
+.save-library-buttons{
+  display:flex;
+  flex-direction:row;
+  gap:8px;
+  align-items:stretch;
+}
+.save-library-buttons .sm-btn{
+  flex:1;
+  min-width:0;
+}
+
+.saved-posters-list{
+  max-height:220px;overflow-y:auto;margin-top:12px;
+  -webkit-overflow-scrolling:touch;
+}
+.saved-empty{font-size:12px;color:var(--t3);margin:4px 0}
+.saved-row{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.saved-row:last-child{border-bottom:none}
+.saved-meta{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.saved-name{
+  font-size:13px;font-weight:600;color:var(--t1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.saved-date{font-size:11px;color:var(--t3)}
+.saved-actions{display:flex;flex-shrink:0;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.saved-actions .sm-btn{padding:6px 10px;min-height:0;font-size:11px}
+
 /* Text tab — per text box (sidebar matches poster; easier on phone than tiny on-frame taps) */
 .tel-block{
   border:1px solid var(--border);
@@ -587,6 +902,8 @@ body.draw-mode .leaflet-grab{cursor:crosshair!important}
 .sm-btn{padding:7px 14px;border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;background:var(--t1);color:#fff;border:none;min-height:34px}
 .sm-btn.danger{background:var(--red);color:#fff}
 .sm-btn.ghost{background:0;border:1px solid var(--border2);color:var(--t2)}
+.sm-btn.ghost.danger-outline{border-color:rgba(239,68,68,.42);color:var(--red)}
+.sm-btn.ghost.danger-outline:hover{background:rgba(239,68,68,.06)}
 
 /* ─── Sliders ────────────────────────────────────────────────────── */
 .srow{display:flex;align-items:center;gap:8px}
@@ -847,6 +1164,71 @@ input[type="range"]::-webkit-slider-thumb{
     border:1px solid rgba(255,255,255,.22);
     color:var(--mob-text-dim);
   }
+  #drawer .drawer-content .sm-btn.ghost.danger-outline{
+    border-color:rgba(248,113,113,.45);
+    color:#f87171;
+  }
+  #drawer .drawer-content .sm-btn.ghost.danger-outline:hover{background:rgba(248,113,113,.1)}
+
+  #drawer .drawer-content .library-card{
+    background:var(--mob-card-bg);
+    border-color:var(--mob-card-border);
+  }
+  #drawer .drawer-content .library-card:hover{border-color:rgba(255,255,255,.2)}
+  #drawer .drawer-content .library-card-name{color:var(--mob-text)}
+  #drawer .drawer-content .library-card-date{color:var(--mob-tab-muted)}
+
+  .library-unsaved-modal .library-unsaved-card{
+    background:var(--mob-card-bg);
+    border-color:var(--mob-card-border);
+    box-shadow:0 16px 48px rgba(0,0,0,.45);
+  }
+  .library-unsaved-modal .library-unsaved-title{color:var(--mob-text)}
+  .library-unsaved-modal .library-unsaved-sub{color:var(--mob-text-dim)}
+  .library-unsaved-modal .library-unsaved-buttons .sm-btn:not(.danger){
+    background:#fff;
+    color:#0a0a0a;
+  }
+  .library-unsaved-modal .library-unsaved-buttons .sm-btn.danger{
+    background:var(--red);
+    color:#fff;
+    border:none;
+  }
+
+  .save-library-modal .save-library-card{
+    background:var(--mob-card-bg);
+    border-color:var(--mob-card-border);
+    box-shadow:0 16px 48px rgba(0,0,0,.45);
+  }
+  .save-library-modal .save-library-title{color:var(--mob-text)}
+  .save-library-modal .save-library-label{color:var(--mob-tab-muted)}
+  .save-library-modal .save-library-input{
+    background:rgba(255,255,255,.06);
+    border-color:rgba(255,255,255,.14);
+    color:var(--mob-text);
+  }
+  .save-library-modal .save-library-input::placeholder{color:var(--mob-tab-muted)}
+  .save-library-modal .save-library-buttons .sm-btn{
+    background:#fff;
+    color:#0a0a0a;
+  }
+  .save-library-modal .save-library-buttons .sm-btn.ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,.22);
+    color:var(--mob-text-dim);
+  }
+
+  .library-fs-glass-inner .sm-btn{background:#fff;color:#0a0a0a}
+  .library-fs-glass-inner .sm-btn.ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,.22);
+    color:rgba(235,235,245,.78);
+  }
+  .library-fs-glass-inner .sm-btn.ghost:hover{background:rgba(255,255,255,.06)}
+  .library-fs-glass-inner .sm-btn.ghost.danger-outline{
+    border-color:rgba(248,113,113,.45);
+    color:#f87171;
+  }
 
   #drawer .drawer-content .nd{
     background:rgba(255,255,255,.06);
@@ -949,6 +1331,11 @@ input[type="range"]::-webkit-slider-thumb{
   #drawer .drawer-content #logo-preview{
     border-color:rgba(255,255,255,.12);
   }
+  #drawer .drawer-content .saved-name{color:var(--mob-text)}
+  #drawer .drawer-content .saved-date{color:var(--mob-tab-muted)}
+  #drawer .drawer-content .saved-row{border-color:rgba(255,255,255,.09)}
+  #drawer .drawer-content .saved-empty{color:var(--mob-text-dim)}
+
   .dtab{
     flex:1;
     flex-direction:column;
@@ -997,6 +1384,19 @@ input[type="range"]::-webkit-slider-thumb{
 
   /* FAB — sit near the bottom edge of the screen */
   .fab{ bottom:24px; }
+
+  .topbar-save-btn{
+    background:transparent;
+    color:#fff;
+    border:1px solid rgba(255,255,255,.38);
+    padding:7px 10px;
+    font-size:12px;
+  }
+  .topbar-save-btn:hover{
+    background:rgba(255,255,255,.1);
+    border-color:rgba(255,255,255,.5);
+    color:#fff;
+  }
 
   /* ── 2. Topbar: mobile layout — dark glass (FotMob shell) ─────── */
   /* Order: logo | undo/redo | [format grows] | export                 */
@@ -1068,7 +1468,14 @@ input[type="range"]::-webkit-slider-thumb{
   .sz-label{ display:none }
   .sz{ padding:5px 7px; font-size:10px; gap:3px }
 
-  #btn-export{ order:4; margin-left:0; padding:7px 10px; font-size:12px; gap:4px }
+  .topbar-trailing{
+    order:4;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-left:0;
+  }
+  #btn-export{ padding:7px 10px; font-size:12px; gap:4px }
 
   /* ── 4. Edit bar: constrain width & allow horizontal scroll ─────── */
   #edit-bar{
@@ -1114,7 +1521,8 @@ input[type="range"]::-webkit-slider-thumb{
   .drawer-content textarea,
   .drawer-content input[type="text"],
   .drawer-content input[type="search"],
-  .drawer-content select{
+  .drawer-content select,
+  .save-library-input{
     font-size:16px !important;
   }
 
@@ -1130,6 +1538,9 @@ input[type="range"]::-webkit-slider-thumb{
   .tb-hist-btn,
   .toggle,
   #btn-export,
+  .topbar-save-btn,
+  .library-fs-close,
+  .library-fs-actions .sm-btn,
   .draw-toggle-btn{
     touch-action:manipulation;
   }
@@ -1146,11 +1557,45 @@ input[type="range"]::-webkit-slider-thumb{
   .theme-name{font-size:11px}
   .lcard-title{font-size:12px}
 
-  /* ── 8. Export button: ensure always visible, 36px min height ───── */
-  #btn-export{min-height:36px;flex-shrink:0}
+  /* ── 8. Export / Save: 36px min height ─────────────────────────── */
+  #btn-export,
+  .topbar-save-btn{min-height:36px;flex-shrink:0}
 
   /* ── 9. App / drawer scroll containment ────────────────────────── */
   #app{overflow:hidden}
   .drawer-content{overflow-y:auto;overflow-x:hidden}
 
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Add to Home Screen / installed PWA (display-mode: standalone)
+   In-browser Safari uses different viewport + chrome; standalone is full-bleed.
+   Pin chrome to real safe areas and fix iOS 100% height with -webkit-fill-available.
+   ════════════════════════════════════════════════════════════════════ */
+@media (display-mode: standalone) {
+  html{
+    height:100%;
+    height:-webkit-fill-available;
+  }
+  body{
+    min-height:100%;
+    min-height:-webkit-fill-available;
+  }
+  #topbar{
+    padding-top:env(safe-area-inset-top, 0px);
+    box-sizing:border-box;
+    height:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  }
+  #app{
+    top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  }
+  /* Only affects phone layout where undo/redo is viewport-fixed over the map */
+  .topbar-history{
+    top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 12px);
+  }
+  @media(min-width:900px){
+    #drawer{
+      top:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    }
+  }
 }

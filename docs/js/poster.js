@@ -31,6 +31,15 @@ function _applyStatCopy(c) {
 const _undoStack = [], _redoStack = [];
 const MAX_HISTORY = 40;
 
+/** Copy live .p-text DOM strings into textEls (so Save captures edits without requiring blur). */
+function _syncTextElsFromDom() {
+  for (const el of textEls) {
+    const d = document.getElementById('pe-' + el.id);
+    if (d) el.text = d.textContent.trim();
+  }
+}
+window._syncTextElsFromDom = _syncTextElsFromDom;
+
 function _captureState() {
   const getPos = id => {
     const el = document.getElementById(id);
@@ -109,10 +118,14 @@ function _restoreState(state) {
     if (pl) pl.style.display = 'none';
   }
 
-  // Restore route nodes (recalculates distance/time — setStatVal overwrites poster values)
+  // Restore route nodes (async doRoute will briefly overwrite stats — re-apply statCopy after)
   if (state.routeNodes) window._restoreRouteNodes?.(state.routeNodes);
 
-  if (state.statCopy) _applyStatCopy(state.statCopy);
+  if (state.statCopy) {
+    _applyStatCopy(state.statCopy);
+    const c = state.statCopy;
+    setTimeout(() => _applyStatCopy(c), 750);
+  }
 
   hideEditBar();
   _updateUndoUI();
@@ -147,6 +160,17 @@ window.pushUndo   = pushUndo;
 window._pushUndo  = pushUndo;
 window.undoAction = undoAction;
 window.redoAction = redoAction;
+
+window._capturePosterCoreState = _captureState;
+window._restorePosterCoreState = _restoreState;
+window._clearUndoHistory = function () {
+  _undoStack.length = 0;
+  _redoStack.length = 0;
+  _updateUndoUI();
+};
+
+/** True when the user has edit actions they can undo (used for unsaved-change prompts). */
+window._hasUndoablePosterChanges = () => _undoStack.length > 0;
 
 // Proportionally rescale all overlay Y-positions when the aspect ratio changes.
 // Frame width is always 1080px so only height matters.
@@ -351,11 +375,16 @@ async function decodeTileImages(tileEls) {
   }));
 }
 
+// dom-to-image resolves some CSS custom properties poorly; match export.js approach.
+const _COMPOSITE_INLINE_TEXT_PROPS = ['fontFamily', 'fontSize', 'color', 'fontWeight',
+  'lineHeight', 'letterSpacing', 'textTransform', 'opacity'];
+
 // Composite the visible Leaflet map into a canvas at the poster's natural resolution.
 // Draw at logical poster size (frameW×frameH), then scale the bitmap up for hi-res output.
 // Mixing ctx.scale() with stroked paths + drawImage() skews line thickness vs icon size
 // relative to on-screen Leaflet; a single final drawImage scale keeps proportions correct.
-async function compositeMapCanvas() {
+async function compositeMapCanvas(opts) {
+  const withOverlay = opts && opts.withOverlay === true;
   const mainMapEl = document.getElementById('map');
   const frameEl   = document.getElementById('poster-frame');
   if (!mainMapEl || !frameEl) return '';
@@ -559,6 +588,80 @@ async function compositeMapCanvas() {
     } catch (_) {}
   }
 
+  // Library thumbnails: rasterise map into #poster-map-img, then capture the full frame
+  // (stats, legend, text, logo) like export — compositeMapCanvas alone only has tiles+route.
+  if (withOverlay && typeof domtoimage !== 'undefined') {
+    const mapImgEl = document.getElementById('poster-map-img');
+    try {
+      if (mapImgEl) {
+        const mapDataUrl = canvas.toDataURL('image/png');
+        const savedImgStyle = mapImgEl.style.cssText;
+        const savedImgSrc = mapImgEl.getAttribute('src');
+
+        const textNodes = frameEl.querySelectorAll('.ps-val,.ps-label,.ps-icon,.p-text,.pl-label,.pl-icon');
+        const savedText = [];
+        textNodes.forEach((el) => {
+          savedText.push(el.style.cssText);
+          const cs = getComputedStyle(el);
+          _COMPOSITE_INLINE_TEXT_PROPS.forEach((p) => {
+            el.style[p] = cs[p];
+          });
+        });
+
+        const savedBoxes = [];
+        for (const id of ['p-stats', 'p-legend', 'p-brand']) {
+          const el = frameEl.querySelector('#' + id);
+          if (!el) continue;
+          savedBoxes.push([el, el.style.cssText]);
+          const cs = getComputedStyle(el);
+          el.style.background = cs.background;
+          el.style.borderRadius = cs.borderRadius;
+          el.style.padding = cs.padding;
+          el.style.boxShadow = cs.boxShadow;
+          el.style.border = cs.border;
+        }
+
+        mapImgEl.src = mapDataUrl;
+        mapImgEl.style.display = 'block';
+        applyMapOffset(mapImgEl);
+        await (mapImgEl.decode?.().catch(() => {}) ??
+          new Promise((r) => {
+            mapImgEl.onload = r;
+            mapImgEl.onerror = r;
+            setTimeout(r, 4000);
+          }));
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        const fullUrl = await domtoimage.toPng(frameEl, {
+          width: frameW,
+          height: frameH,
+          style: { transform: 'none', transformOrigin: 'top left' },
+        });
+
+        textNodes.forEach((el, i) => {
+          el.style.cssText = savedText[i];
+        });
+        savedBoxes.forEach(([el, snap]) => {
+          el.style.cssText = snap;
+        });
+        mapImgEl.style.cssText = savedImgStyle;
+        if (savedImgSrc) mapImgEl.setAttribute('src', savedImgSrc);
+        else mapImgEl.removeAttribute('src');
+
+        const fullImg = new Image();
+        await new Promise((res, rej) => {
+          fullImg.onload = res;
+          fullImg.onerror = rej;
+          fullImg.src = fullUrl;
+        });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(fullImg, 0, 0, frameW, frameH);
+      }
+    } catch (e) {
+      console.warn('compositeMapCanvas withOverlay', e);
+    }
+  }
+
   // Hi-res: uniform scale of the full composite so route thickness and arrow icons
   // stay in the same proportion as on-screen Leaflet (see header comment).
   const out = document.createElement('canvas');
@@ -597,6 +700,37 @@ async function updatePosterPreview(opts = {}) {
 }
 window.updatePosterPreview  = updatePosterPreview;
 window.compositeMapCanvas  = compositeMapCanvas;
+
+/** Downscaled JPEG for Library grid & preview (localStorage). */
+async function buildLibraryThumbnail() {
+  try {
+    await new Promise((r) => setTimeout(r, 100));
+    const hi = await compositeMapCanvas({ withOverlay: true });
+    if (!hi || !hi.startsWith('data:')) return '';
+    const img = new Image();
+    await new Promise((res, rej) => {
+      img.onload = () => res();
+      img.onerror = rej;
+      img.src = hi;
+    });
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    if (!iw || !ih) return '';
+    const maxW = 360;
+    const w = Math.min(maxW, iw);
+    const h = Math.round((ih / iw) * w);
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(img, 0, 0, w, h);
+    return c.toDataURL('image/jpeg', 0.82);
+  } catch {
+    return '';
+  }
+}
+window.buildLibraryThumbnail = buildLibraryThumbnail;
 
 // ── Text Elements ─────────────────────────────────────────────────────────────
 

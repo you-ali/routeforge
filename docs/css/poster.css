@@ -4,6 +4,7 @@
   cursor:grab;user-select:none;transform-origin:top left;
   white-space:nowrap;display:inline-block;line-height:1.05;letter-spacing:.02em;
   touch-action:none;
+  -webkit-tap-highlight-color:transparent;
 }
 @media (max-width:899px){
   /* Larger effective tap target on phones (tiny fonts are hard to hit before drag kicks in) */
@@ -13,12 +14,24 @@
   }
 }
 .p-text:active{cursor:grabbing}
-/* Double-click puts .p-text into inline-edit mode */
-.p-text[contenteditable="true"]{
+/* No visible selection / focus frame on text (avoid OS accent / tan UA rings on contenteditable) */
+#poster-els .p-text,
+#poster-els .p-text:hover,
+#poster-els .p-text:active,
+#poster-els .p-text:focus,
+#poster-els .p-text:focus-visible,
+#poster-els .p-text:focus-within,
+#poster-els .p-text.poster-el-selected,
+#poster-els .p-text[contenteditable="true"]{
+  outline:none!important;
+  outline-width:0!important;
+  outline-style:none!important;
+  outline-offset:0!important;
+  box-shadow:none!important;
+}
+#poster-els .p-text[contenteditable="true"]{
   cursor:text;
   user-select:text;
-  outline:2px dashed rgba(255,255,255,.4);
-  outline-offset:4px;
 }
 
 /* ─── Stats card on poster ─── */

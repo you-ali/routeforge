@@ -15,9 +15,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
   <link id="google-font-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat&family=Oswald&family=DM+Sans&family=Space+Grotesk&family=Syne&family=Barlow+Condensed&family=IBM+Plex+Mono&family=Playfair+Display&family=Cormorant+Garamond&display=swap" crossorigin>
-  <link rel="stylesheet" href="./css/app.css?v=23">
+  <link rel="stylesheet" href="./css/app.css?v=32">
   <link rel="stylesheet" href="./css/themes.css?v=4">
-  <link rel="stylesheet" href="./css/poster.css?v=7">
+  <link rel="stylesheet" href="./css/poster.css?v=9">
 </head>
 <body>
 
@@ -63,11 +63,14 @@
     </button>
   </div>
 
-  <!-- Export -->
-  <button id="btn-export" class="topbar-export-btn">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Export
-  </button>
+  <!-- Trailing: Save (Library) + Export -->
+  <div class="topbar-trailing">
+    <button type="button" id="btn-save-library" class="topbar-save-btn" title="Save poster to Library">Save</button>
+    <button type="button" id="btn-export" class="topbar-export-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export
+    </button>
+  </div>
 
 </header>
 
@@ -419,6 +422,13 @@
 
     </div><!-- /dtab-overlays -->
 
+    <!-- ═══ LIBRARY (saved posters on this device) ═══ -->
+    <div class="dtab-pane library-pane" id="dtab-library">
+      <div id="library-main" class="library-main">
+        <div id="library-grid" class="library-grid" aria-live="polite"></div>
+      </div>
+    </div>
+
   </div><!-- /drawer-content -->
   </div><!-- /drawer-panel -->
 
@@ -436,8 +446,58 @@
       <svg class="dtab-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 8h10M4 12h16M4 16h12"/></svg>
       <span class="dtab-label">Text</span>
     </button>
+    <button type="button" class="dtab" data-tab="library">
+      <svg class="dtab-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 21h13V8M8 8v13"/></svg>
+      <span class="dtab-label">Library</span>
+    </button>
   </nav>
 </div><!-- /drawer -->
+
+<div id="library-fullscreen" class="library-fullscreen" hidden>
+  <div class="library-fs-backdrop" aria-hidden="true"></div>
+  <button type="button" id="library-fs-close" class="library-fs-close" aria-label="Close preview">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="library-fs-stage">
+    <img id="library-fs-img" class="library-fs-img" alt="" decoding="async">
+  </div>
+  <div class="library-fs-glass">
+    <div class="library-fs-glass-inner">
+      <div class="library-fs-title" id="library-fs-title"></div>
+      <div class="library-fs-meta" id="library-fs-meta"></div>
+      <div class="library-fs-actions">
+        <button type="button" id="library-fs-edit" class="sm-btn">Edit</button>
+        <button type="button" id="library-fs-export" class="sm-btn ghost">Export</button>
+        <button type="button" id="library-fs-delete" class="sm-btn ghost danger-outline">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="library-unsaved-modal" class="library-unsaved-modal" hidden>
+  <div class="library-unsaved-backdrop" aria-hidden="true"></div>
+  <div class="library-unsaved-card" role="alertdialog" aria-labelledby="library-unsaved-title" aria-modal="true">
+    <p id="library-unsaved-title" class="library-unsaved-title">You have unsaved changes on the poster in the editor.</p>
+    <p class="library-unsaved-sub">Save the current poster to your Library, or discard those changes and open the one you selected.</p>
+    <div class="library-unsaved-buttons">
+      <button type="button" class="sm-btn" id="lib-unsaved-save">Save</button>
+      <button type="button" class="sm-btn danger" id="lib-unsaved-discard">Discard changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="save-to-library-modal" class="save-library-modal" hidden>
+  <div class="save-library-backdrop" aria-hidden="true"></div>
+  <div class="save-library-card" role="dialog" aria-modal="true" aria-labelledby="save-library-title">
+    <p id="save-library-title" class="save-library-title">Save to Library</p>
+    <label class="save-library-label" for="save-to-library-name">Name</label>
+    <input type="text" id="save-to-library-name" class="save-library-input" autocomplete="off" maxlength="80" placeholder="Poster name">
+    <div class="save-library-buttons">
+      <button type="button" class="sm-btn" id="save-to-library-confirm">Save</button>
+      <button type="button" class="sm-btn ghost" id="save-to-library-discard">Discard</button>
+    </div>
+  </div>
+</div>
 
 <!-- Hidden off-screen Leaflet map for high-res poster export.
      Portrait 4:5 ratio (750×937) — largest poster format for best quality. -->
@@ -469,11 +529,12 @@
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.2.0/dist/dom-to-image-more.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.27/interact.min.js"></script>
 <script src="./js/api.js?v=4"></script>
-<script src="./js/themes.js?v=5"></script>
-<script src="./js/map.js?v=6"></script>
-<script src="./js/builder.js?v=8"></script>
-<script src="./js/poster.js?v=14"></script>
-<script src="./js/export.js?v=5"></script>
+<script src="./js/themes.js?v=6"></script>
+<script src="./js/map.js?v=7"></script>
+<script src="./js/builder.js?v=11"></script>
+<script src="./js/poster.js?v=17"></script>
+<script src="./js/projects.js?v=7"></script>
+<script src="./js/export.js?v=6"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

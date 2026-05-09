@@ -256,6 +256,8 @@ function collapseDrawer() {
 function expandDrawer() {
   document.getElementById('drawer')?.classList.add('expanded');
 }
+window.collapseDrawer = collapseDrawer;
+window.expandDrawer = expandDrawer;
 
 function initDrawer() {
   const drawer = document.getElementById('drawer');
@@ -286,6 +288,21 @@ function initDrawer() {
   };
   bindSheetSwipe(panel);
   bindSheetSwipe(tabBar);
+
+  // Mobile: tap map / chrome outside the drawer to dismiss the expanded sheet
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (!isMobileDrawer()) return;
+      if (!drawer.classList.contains('expanded')) return;
+      if (e.target.closest('#drawer')) return;
+      if (e.target.closest('#library-fullscreen:not([hidden])')) return;
+      if (e.target.closest('#library-unsaved-modal:not([hidden])')) return;
+      if (e.target.closest('#save-to-library-modal:not([hidden])')) return;
+      collapseDrawer();
+    },
+    true
+  );
 }
 
 function initDrawerTabs() {
@@ -307,6 +324,64 @@ function initDrawerTabs() {
     t.classList.add('active');
     document.getElementById('dtab-' + t.dataset.tab)?.classList.add('active');
 
+    if (t.dataset.tab === 'library') window._refreshLibraryGrid?.();
+
     if (mq.matches) expandDrawer();
   }));
 }
+
+const FRAME_H_EXPORT = { portrait: 1350, square: 1080, landscape: 566 };
+const CAPTURE_H_MAP_EXPORT = { portrait: 937, square: 750, landscape: 422 };
+
+window.getFormatSize = () => _currentSize;
+
+/** Switch format without rescaling overlay coordinates (used when loading a saved poster). */
+window.setFormatSizeNoRescale = function (size) {
+  if (!['portrait', 'square', 'landscape'].includes(size)) return;
+  _currentSize = size;
+  document.querySelectorAll('#sz-pick .sz').forEach((x) => {
+    x.classList.toggle('active', x.dataset.size === size);
+  });
+  const frame = document.getElementById('poster-frame');
+  if (frame) frame.className = 'size-' + size;
+  const captureMapEl = document.getElementById('capture-map');
+  if (captureMapEl) {
+    captureMapEl.style.height = (CAPTURE_H_MAP_EXPORT[size] || 937) + 'px';
+    window._captureMap?.invalidateSize({ animate: false });
+  }
+  requestAnimationFrame(() => window.scalePoster?.());
+};
+
+window.setFormatSize = function (size) {
+  if (!['portrait', 'square', 'landscape'].includes(size)) return;
+  if (size !== _currentSize) {
+    window.rescaleElements?.(FRAME_H_EXPORT[_currentSize], FRAME_H_EXPORT[size]);
+    _currentSize = size;
+  }
+  document.querySelectorAll('#sz-pick .sz').forEach((x) => {
+    x.classList.toggle('active', x.dataset.size === size);
+  });
+  const frame = document.getElementById('poster-frame');
+  if (frame) frame.className = 'size-' + size;
+  const captureMapEl = document.getElementById('capture-map');
+  if (captureMapEl) {
+    captureMapEl.style.height = (CAPTURE_H_MAP_EXPORT[size] || 937) + 'px';
+    window._captureMap?.invalidateSize({ animate: false });
+  }
+  requestAnimationFrame(() => window.scalePoster?.());
+};
+
+window.getMarkerStyles = () => ({ start: startStyle, end: endStyle });
+
+window.setMarkerStyles = function (start, end) {
+  startStyle = start || 'pin';
+  endStyle = end || 'flag';
+  const syncPicker = (pickerId, icon) => {
+    document.querySelectorAll(`#${pickerId} .icn`).forEach((x) => {
+      x.classList.toggle('active', x.dataset.icon === icon);
+    });
+  };
+  syncPicker('start-icon-picker', startStyle);
+  syncPicker('end-icon-picker', endStyle);
+  refreshMarkers();
+};
